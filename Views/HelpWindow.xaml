@@ -1,0 +1,99 @@
+<Window x:Class="TypeIt4Me.Views.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TypeIt4Me - Help &amp; About" Height="450" Width="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBackground}">
+    <Window.Resources>
+        <Style TargetType="FlowDocument">
+             <Setter Property="FontFamily" Value="Segoe UI"/>
+             <Setter Property="Background" Value="{DynamicResource WindowBackground}"/>
+             <Setter Property="Foreground" Value="{DynamicResource TextForeground}"/>
+        </Style>
+        <Style TargetType="Paragraph">
+             <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <TabControl Background="Transparent" BorderThickness="0">
+            <!-- Help Tab -->
+            <TabItem Header="Help &amp; Features" Foreground="Black">
+                <FlowDocumentScrollViewer Background="{DynamicResource WindowBackground}">
+                    <FlowDocument Foreground="{DynamicResource TextForeground}">
+                        <Paragraph FontSize="20" FontWeight="Bold">Welcome to TypeIt4Me</Paragraph>
+                        <Paragraph>TypeIt4Me is a secure, lightweight text expansion tool designed to boost your productivity.</Paragraph>
+                        
+                        <Paragraph FontSize="16" FontWeight="Bold" Margin="0,15,0,5">Key Features</Paragraph>
+                        <List MarkerStyle="Disc">
+                            <ListItem><Paragraph>Global Hotkeys: Trigger snippets anywhere using their assigned shortcuts.</Paragraph></ListItem>
+                            <ListItem><Paragraph>Search: Fast, debounced search to find snippets instantly.</Paragraph></ListItem>
+                            <ListItem><Paragraph>Themes: Choose between Light and Dark modes.</Paragraph></ListItem>
+                            <ListItem><Paragraph>Mini Mode / Tray: Minimalist interface that stays out of your way.</Paragraph></ListItem>
+                        </List>
+
+                         <Paragraph FontSize="16" FontWeight="Bold" Margin="0,15,0,5">Security &amp; Encryption</Paragraph>
+                         <Paragraph>Your privacy is paramount. TypeIt4Me uses industry-standard security:</Paragraph>
+                         <List MarkerStyle="Disc">
+                             <ListItem><Paragraph>Encryption: Snippets are encrypted using AES-256 (V2) with dynamic salt and IV.</Paragraph></ListItem>
+                             <ListItem><Paragraph>PIN Hashing: PINs are hashed using Salted PBKDF2 (600k iterations).</Paragraph></ListItem>
+                             <ListItem><Paragraph>Memory Safety: Sensitive keys are scrubbed from RAM immediately after use.</Paragraph></ListItem>
+                             <ListItem><Paragraph>Auto-Lock: Automatically locks the app after inactivity.</Paragraph></ListItem>
+                             <ListItem><Paragraph>Input Injection: Uses SendInput API to bypass the clipboard for security.</Paragraph></ListItem>
+                         </List>
+
+                        <Paragraph FontSize="16" FontWeight="Bold" Margin="0,15,0,5">File Locations</Paragraph>
+                        <Paragraph>Your data remains on your device:</Paragraph>
+                        <List MarkerStyle="Disc">
+                            <ListItem><Paragraph>Snippets: %AppData%\TypeIt4Me\snippets.json</Paragraph></ListItem>
+                            <ListItem><Paragraph>Settings: %AppData%\TypeIt4Me\settings.json</Paragraph></ListItem>
+                        </List>
+                        
+                    </FlowDocument>
+                </FlowDocumentScrollViewer>
+            </TabItem>
+
+            <!-- About Tab -->
+            <TabItem Header="About" Foreground="Black">
+                <StackPanel Margin="20">
+                     <Image Source="/TypeIt4Me.ico" Width="64" Height="64" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                     <TextBlock Text="TypeIt4Me" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextForeground}"/>
+                     <TextBlock Text="v1.6.0" FontSize="14" HorizontalAlignment="Center" Foreground="Gray" Margin="0,0,0,20"/>
+                     
+                     <TextBlock Text="Created by Léon &quot;Avic&quot; Simmons" HorizontalAlignment="Center" FontSize="16" Foreground="{DynamicResource TextForeground}"/>
+                     <TextBlock Text="http://github.com/avicennasis/TypeIt4Me" HorizontalAlignment="Center" Foreground="DodgerBlue" Cursor="Hand" MouseDown="Link_MouseDown" Margin="0,5,0,20" TextDecorations="Underline"/>
+                     
+                     <TextBlock Text="Licenses" FontWeight="Bold" Margin="0,20,0,5" Foreground="{DynamicResource TextForeground}"/>
+                     <TextBox IsReadOnly="True" Height="150" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputForeground}" BorderThickness="0" Padding="5">
+MIT License
+
+Copyright (c) 2025 TypeIt4Me Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+Attribution:
+Application Icon from Material Symbols (Google)
+Licensed under Apache License Version 2.0
+                     </TextBox>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
