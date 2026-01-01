@@ -2,8 +2,6 @@
 
 A lightweight, secure text expansion tool for Windows built with .NET 6 and WPF.
 
-![TypeIt4Me Icon](TypeIt4Me/TypeIt4Me.ico)
-
 ## Features
 
 *   **Text Expansion**: Create shortcuts (e.g., `eml`) that expand into full text (e.g., `my.email@example.com`).
@@ -50,3 +48,4 @@ This project is licensed under the **MIT License**.
 The Application Icon is from [Material Symbols](https://fonts.google.com/icons) by Google, licensed under the **Apache License Version 2.0**.
 
 See [LICENSE](LICENSE) for details.
+
