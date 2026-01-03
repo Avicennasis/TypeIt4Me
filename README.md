@@ -42,10 +42,12 @@ TypeIt4Me prioritizes the security of your snippets.
 4.  **Tray**: The app minimizes to the system tray. Double-click the tray icon or use the hotkey to restore.
 
 ## License
-
-This project is licensed under the **MIT License**.
+This project is licensed under the MIT License.
 
 The Application Icon is from [Material Symbols](https://fonts.google.com/icons) by Google, licensed under the **Apache License Version 2.0**.
 
 See [LICENSE](LICENSE) for details.
+
+## Credits
+**Author:** Léon "Avic" Simmons ([@Avicennasis](https://github.com/Avicennasis))
 
