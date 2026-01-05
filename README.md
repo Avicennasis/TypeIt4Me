@@ -41,6 +41,73 @@ TypeIt4Me prioritizes the security of your snippets.
 3.  **Config**: Click the Menu (☰) for Settings (Themes, Auto-Lock), PIN management, and Import/Export.
 4.  **Tray**: The app minimizes to the system tray. Double-click the tray icon or use the hotkey to restore.
 
+## Special Keys & Commands
+
+TypeIt4Me supports special key presses and commands using curly bracket syntax. These can be combined with regular text in your snippets.
+
+### Navigation Keys
+| Command | Key | Aliases |
+|---------|-----|---------|
+| `{TAB}` | Tab | |
+| `{ENTER}` | Enter | `{RETURN}` |
+| `{ESC}` | Escape | `{ESCAPE}` |
+| `{BACKSPACE}` | Backspace | |
+| `{DELETE}` | Delete | `{DEL}` |
+| `{INSERT}` | Insert | `{INS}` |
+| `{HOME}` | Home | |
+| `{END}` | End | |
+| `{PAGEUP}` | Page Up | `{PGUP}` |
+| `{PAGEDOWN}` | Page Down | `{PGDN}` |
+| `{SPACE}` | Space | |
+
+### Arrow Keys
+| Command | Key | Aliases |
+|---------|-----|---------|
+| `{UP}` | Arrow Up | `{ARROWUP}` |
+| `{DOWN}` | Arrow Down | `{ARROWDOWN}` |
+| `{LEFT}` | Arrow Left | `{ARROWLEFT}` |
+| `{RIGHT}` | Arrow Right | `{ARROWRIGHT}` |
+
+### Modifier Keys
+| Command | Key | Aliases |
+|---------|-----|---------|
+| `{SHIFT}` | Shift | |
+| `{CTRL}` | Control | `{CONTROL}` |
+| `{ALT}` | Alt | |
+| `{WINKEY}` | Windows Key | `{WIN}`, `{LWIN}`, `{RWIN}` |
+
+### Toggle & Special Keys
+| Command | Key | Aliases |
+|---------|-----|---------|
+| `{CAPSLOCK}` | Caps Lock | `{CAPS}` |
+| `{NUMLOCK}` | Num Lock | |
+| `{SCROLLLOCK}` | Scroll Lock | |
+| `{PRINTSCREEN}` | Print Screen | `{PRTSC}` |
+
+### Function Keys
+`{F1}` through `{F12}` - All function keys are supported.
+
+### Sleep Command
+Use `{SLEEP <milliseconds>}` to pause between actions (1ms to 60,000ms):
+- `{SLEEP 500}` - Pause for half a second
+- `{SLEEP 2000}` - Pause for 2 seconds
+
+### Example Snippets
+```
+Hello{TAB}World{ENTER}
+```
+Types "Hello", presses Tab, types "World", then presses Enter.
+
+```
+{CTRL}a{CTRL}c{TAB}{CTRL}v
+```
+Select all, copy, tab to next field, paste.
+
+```
+Starting...{SLEEP 1000}Done!
+```
+Types "Starting...", waits 1 second, then types "Done!".
+
 ## License
 This project is licensed under the MIT License.
 
