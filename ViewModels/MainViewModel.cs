@@ -58,9 +58,12 @@ namespace TypeIt4Me.ViewModels
             get => _settingsManager.Settings.AutoLockMinutes;
             set
             {
-                if (_settingsManager.Settings.AutoLockMinutes != value)
+                // Security: Validate bounds (0 = disabled, max 24 hours = 1440 minutes)
+                int validatedValue = Math.Max(0, Math.Min(value, 1440));
+
+                if (_settingsManager.Settings.AutoLockMinutes != validatedValue)
                 {
-                    _settingsManager.Settings.AutoLockMinutes = value;
+                    _settingsManager.Settings.AutoLockMinutes = validatedValue;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(IsAutoLockOff));
                     OnPropertyChanged(nameof(IsAutoLock1Min));
@@ -161,7 +164,10 @@ namespace TypeIt4Me.ViewModels
         {
             try
             {
+                // Properly dispose previous CancellationTokenSource
                 _searchCts?.Cancel();
+                _searchCts?.Dispose();
+
                 _searchCts = new System.Threading.CancellationTokenSource();
                 var token = _searchCts.Token;
 
@@ -174,7 +180,7 @@ namespace TypeIt4Me.ViewModels
             }
             catch (TaskCanceledException)
             {
-                // Ignore
+                // Ignore - this is expected when search is cancelled
             }
         }
 

@@ -28,14 +28,24 @@ namespace TypeIt4Me
 
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
-            string errorMsg = $"An unhandled error occurred: {e.Exception.Message}\n\nStack Trace:\n{e.Exception.StackTrace}";
-            MessageBox.Show(errorMsg, "TypeIt4Me Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            
-            // Log to file
+            // Security: Show generic error to user, log detailed info to file only
+            string userMessage = $"An unexpected error occurred: {e.Exception.Message}\n\nPlease check the error log for details.";
+            string detailedLog = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\n" +
+                                $"Exception Type: {e.Exception.GetType().FullName}\n" +
+                                $"Message: {e.Exception.Message}\n" +
+                                $"Stack Trace:\n{e.Exception.StackTrace}\n" +
+                                $"--------------------------------------------------\n";
+
+            MessageBox.Show(userMessage, "TypeIt4Me Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+            // Log detailed information to file (secure location)
             try
             {
-                string path = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TypeIt4Me", "error.log");
-                System.IO.File.AppendAllText(path, $"{DateTime.Now}: {errorMsg}\n--------------------------------------------------\n");
+                string logPath = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "TypeIt4Me",
+                    "error.log");
+                System.IO.File.AppendAllText(logPath, detailedLog);
             }
             catch { /* Ignore logging failure */ }
 
@@ -89,47 +99,47 @@ namespace TypeIt4Me
                 // Set initial theme - ViewModel does this in constructor/LoadSettings now via Service
                 // MainViewModel_RequestThemeChange(_settingsManager.Settings.IsDarkMode);
 
-                // Check PIN before showing
+                // Check PIN before showing (V3 only - requires salt)
                 if (!string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
                 {
-                    bool unlocked = false;
-                    while (!unlocked)
+                    // Validate that salt exists (V3 requirement)
+                    if (string.IsNullOrEmpty(_settingsManager.Settings.PinSalt))
                     {
-                        var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
-                        if (pinWin.ShowDialog() == true)
+                        MessageBox.Show("PIN configuration is invalid. Please reset your PIN.", "Security Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        // Clear invalid PIN data
+                        _settingsManager.Settings.PinHash = string.Empty;
+                        _settingsManager.Settings.PinSalt = string.Empty;
+                        await _settingsManager.SaveSettingsAsync();
+                    }
+                    else
+                    {
+                        bool unlocked = false;
+                        while (!unlocked)
                         {
-                            // Check if legacy (no salt) or new (salt)
-                            bool valid = false;
-                            if (string.IsNullOrEmpty(_settingsManager.Settings.PinSalt))
+                            var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
+                            if (pinWin.ShowDialog() == true)
                             {
-                                // Legacy Check
-                                if (CryptoService.ComputeHashLegacy(pinWin.Pin) == _settingsManager.Settings.PinHash) valid = true;
-                            }
-                            else
-                            {
-                                // New Salted Check
+                                // Validate PIN using salted hash (V3 only)
                                 string hash = Services.CryptoService.HashPin(pinWin.Pin, _settingsManager.Settings.PinSalt);
-                                if (hash == _settingsManager.Settings.PinHash) valid = true;
-                            }
-
-                            if (valid)
-                            {
-                                unlocked = true;
-                                // Set PIN in Manager for Decryption
-                                _snippetManager.SetPin(pinWin.Pin);
-                                // CRITICAL: Re-load snippets now that we have the PIN/Key
-                                await _snippetManager.LoadSnippetsAsync();
+                                if (hash == _settingsManager.Settings.PinHash)
+                                {
+                                    unlocked = true;
+                                    // Set PIN in Manager for Decryption
+                                    _snippetManager.SetPin(pinWin.Pin);
+                                    // CRITICAL: Re-load snippets now that we have the PIN/Key
+                                    await _snippetManager.LoadSnippetsAsync();
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Invalid PIN. Please try again.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                }
                             }
                             else
                             {
-                                MessageBox.Show("Invalid PIN. Please try again.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                // User cancelled the unlock (e.g. hit Cancel or Close on PIN dialog).
+                                // We should NOT Shutdown the app here, just remain locked/hidden.
+                                return; // App starts up but hidden
                             }
-                        }
-                        else
-                        {
-                            // User cancelled the unlock (e.g. hit Cancel or Close on PIN dialog).
-                            // We should NOT Shutdown the app here, just remain locked/hidden.
-                            return; // App starts up but hidden
                         }
                     }
                 }
@@ -153,26 +163,43 @@ namespace TypeIt4Me
         {
             if (_settingsManager == null) return;
 
-            var pinWin = new PinEntryWindow("Set New PIN");
+            var pinWin = new PinEntryWindow("Set New PIN (Minimum 4 characters)");
             if (pinWin.ShowDialog() == true)
             {
-                 if (!string.IsNullOrEmpty(pinWin.Pin))
+                 // Security: Enforce minimum PIN length
+                 if (string.IsNullOrEmpty(pinWin.Pin) || pinWin.Pin.Length < 4)
                  {
-                     // Generate Salt
-                     string salt = Services.CryptoService.GenerateSalt();
-                     // Hash
-                     string hash = Services.CryptoService.HashPin(pinWin.Pin, salt);
-                     
-                     _settingsManager.Settings.PinSalt = salt;
-                     _settingsManager.Settings.PinHash = hash;
-                     _settingsManager.SaveSettingsAsync();
-                     
-                     // Set PIN in manager and Save (this triggers encryption)
-                     _snippetManager!.SetPin(pinWin.Pin);
-                     _snippetManager.SaveSnippetsAsync();
-                     
-                     MessageBox.Show("PIN Set Successfully! Your snippets are now encrypted.", "Security", MessageBoxButton.OK, MessageBoxImage.Information);
+                     MessageBox.Show("PIN must be at least 4 characters long.", "Invalid PIN", MessageBoxButton.OK, MessageBoxImage.Warning);
+                     return;
                  }
+
+                 // Recommendation for strong PINs
+                 if (pinWin.Pin.Length < 6)
+                 {
+                     var result = MessageBox.Show(
+                         "Your PIN is short. For better security, we recommend using at least 6 characters.\n\nDo you want to continue with this PIN?",
+                         "Security Recommendation",
+                         MessageBoxButton.YesNo,
+                         MessageBoxImage.Question);
+                     if (result == MessageBoxResult.No)
+                     {
+                         return;
+                     }
+                 }
+
+                 // Generate Salt and Hash
+                 string salt = Services.CryptoService.GenerateSalt();
+                 string hash = Services.CryptoService.HashPin(pinWin.Pin, salt);
+
+                 _settingsManager.Settings.PinSalt = salt;
+                 _settingsManager.Settings.PinHash = hash;
+                 _settingsManager.SaveSettingsAsync();
+
+                 // Set PIN in manager and Save (this triggers encryption)
+                 _snippetManager!.SetPin(pinWin.Pin);
+                 _snippetManager.SaveSnippetsAsync();
+
+                 MessageBox.Show("PIN Set Successfully! Your snippets are now encrypted with V3 (AES-256 + HMAC-SHA256).", "Security", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
