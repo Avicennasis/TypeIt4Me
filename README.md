@@ -11,17 +11,30 @@ A lightweight, secure text expansion tool for Windows built with .NET 6 and WPF.
 *   **Mini Mode**: Collapse the window to a compact view for screen efficiency.
 
 ## Security Architecture
-TypeIt4Me prioritizes the security of your snippets.
+TypeIt4Me prioritizes the security of your snippets with enterprise-grade cryptography.
 
-*   **Encryption**: Snippets are encrypted using **AES-256** (Advanced Encryption Standard).
-    *   **Version 2 (Current)**: Uses a unique, randomly generated 32-byte salt and 16-byte initialization vector (IV) for *every* file save. This ensures that even if you save the same data twice, the encrypted file will look completely different, preventing pattern analysis.
-    *   **Key Derivation**: Your PIN is strengthened using **PBKDF2** (SHA-256) with 600,000 iterations to derive the encryption key (OWASP recommended).
-*   **PIN Storage**: Your PIN is **never** stored in plain text. It is hashed using a unique salt and PBKDF2-SHA256 before being saved to `settings.json`.
-*   **Memory Safety**: 
-    *   The PIN is kept in memory only while the application is running.
-    *   Cryptographic keys and sensitive buffers are explicitly zeroed out (scrubbed) from memory immediately after use to mitigate RAM scraping attacks.
-*   **Auto-Lock**: Configure an idle timer to automatically lock the application and clear sensitive data from memory when you step away.
-*   **Input Injection**: The application uses the Windows `SendInput` API for text expansion, avoiding the system clipboard entirely. This prevents your snippets from appearing in clipboard history managers.
+*   **Encryption**: Snippets are encrypted using **AES-256-CBC** with **HMAC-SHA256 authentication** (Authenticated Encryption).
+    *   **Version 3 (Current)**:
+        - Uses **AES-256** encryption with randomly generated 32-byte salt and 16-byte IV per save
+        - **HMAC-SHA256** authentication prevents tampering and detects corrupted data
+        - Separate derived keys for encryption and authentication (defense-in-depth)
+        - Each save generates unique encrypted output, preventing pattern analysis attacks
+    *   **Key Derivation**: Your PIN is strengthened using **PBKDF2-SHA256** with **600,000 iterations** (OWASP 2024 recommendation) to derive encryption and authentication keys
+*   **PIN Storage**:
+    *   Your PIN is **never** stored in plain text
+    *   Hashed using PBKDF2-SHA256 with a unique, randomly generated 32-byte salt
+    *   Minimum 4-character PIN enforced, 6+ characters recommended
+    *   Stored securely in `settings.json` alongside its unique salt
+*   **Memory Safety**:
+    *   Cryptographic keys and sensitive buffers are explicitly zeroed from memory immediately after use
+    *   Helps mitigate RAM scraping and memory dump attacks
+    *   **Note**: PIN remains in memory as a .NET string during session (immutable string limitation)
+*   **Input Validation**:
+    *   Maximum snippet size enforced (100 KB) to prevent denial-of-service attacks
+    *   Auto-lock timeout validated (0-1440 minutes)
+    *   Cryptographic buffer length validation prevents buffer overflow attacks
+*   **Auto-Lock**: Configure an idle timer (1-1440 minutes) to automatically lock the application when you step away
+*   **Input Injection**: Uses Windows `SendInput` API for text expansion, completely avoiding the system clipboard. This prevents snippets from appearing in clipboard history managers or being logged by clipboard monitoring tools.
 
 ## File Locations
 *   **Snippets**: `%AppData%\TypeIt4Me\snippets.json` (Encrypted if PIN is set)

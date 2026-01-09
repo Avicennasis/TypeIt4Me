@@ -84,35 +84,49 @@ namespace TypeIt4Me.Services
 
         public async Task SaveSnippetsAsync()
         {
+            string? tempPath = null;
             try
             {
                 string path = GetFilePath();
-                string tempPath = path + ".tmp";
-                
+                tempPath = path + ".tmp";
+
                 await _fileLock.WaitAsync();
-                
+
                 string json = JsonSerializer.Serialize(Snippets);
-                
+
                 if (!string.IsNullOrEmpty(_currentPin))
                 {
-                    // Encrypt
+                    // Encrypt with V3 (AES-256 + HMAC)
                     string encrypted = CryptoService.Encrypt(json, _currentPin);
                     await File.WriteAllTextAsync(tempPath, encrypted);
                 }
                 else
                 {
-                    // Plain Text
+                    // Plain Text (no encryption)
                     await File.WriteAllTextAsync(tempPath, json);
                 }
-                
+
+                // Atomic move operation
                 File.Move(tempPath, path, overwrite: true);
+                tempPath = null; // Successfully moved, don't delete
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving snippets: {ex.Message}");
+                throw; // Re-throw to allow caller to handle
             }
             finally
             {
+                // Clean up temp file if it still exists (operation failed)
+                if (tempPath != null && File.Exists(tempPath))
+                {
+                    try
+                    {
+                        File.Delete(tempPath);
+                    }
+                    catch { /* Ignore cleanup failure */ }
+                }
+
                 _fileLock.Release();
             }
         }
@@ -196,16 +210,49 @@ namespace TypeIt4Me.Services
             }
         }
 
+        public async Task AddSnippetAsync(Snippet snippet)
+        {
+            Snippets.Add(snippet);
+            await SaveSnippetsAsync();
+        }
+
+        public async Task RemoveSnippetAsync(Snippet snippet)
+        {
+            Snippets.Remove(snippet);
+            await SaveSnippetsAsync();
+        }
+
+        // Keep synchronous versions for compatibility, but log errors
         public void AddSnippet(Snippet snippet)
         {
             Snippets.Add(snippet);
-            _ = SaveSnippetsAsync();
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await SaveSnippetsAsync();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Background save failed after AddSnippet: {ex.Message}");
+                }
+            });
         }
 
         public void RemoveSnippet(Snippet snippet)
         {
             Snippets.Remove(snippet);
-            _ = SaveSnippetsAsync();
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await SaveSnippetsAsync();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Background save failed after RemoveSnippet: {ex.Message}");
+                }
+            });
         }
     }
 }

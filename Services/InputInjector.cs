@@ -8,6 +8,14 @@ namespace TypeIt4Me.Services
 {
     public class InputInjector
     {
+        // Security: Maximum snippet content length to prevent DoS (100 KB)
+        private const int MaxSnippetLength = 100 * 1024;
+
+        // Timing constants for better maintainability
+        private const int ModifierReleaseDelayMs = 150;
+        private const int KeyPressDelayMs = 10;
+        private const int BatchDelayMs = 10;
+
         // Virtual key code mappings for special keys
         private static readonly Dictionary<string, ushort> SpecialKeys = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase)
         {
@@ -83,12 +91,18 @@ namespace TypeIt4Me.Services
             if (string.IsNullOrEmpty(text))
                 return;
 
+            // Security: Validate input length to prevent DoS attacks
+            if (text.Length > MaxSnippetLength)
+            {
+                throw new ArgumentException($"Snippet content exceeds maximum allowed length of {MaxSnippetLength} characters.");
+            }
+
             // 1. Release modifiers potentially held down by the user (Win, Alt, Ctrl, Shift)
             // This prevents "stuck key" behavior when firing hotkeys.
             ReleaseModifiers();
-            
+
             // Small delay to ensure target window is ready/focused and modifiers registered as up
-            await Task.Delay(150);
+            await Task.Delay(ModifierReleaseDelayMs);
 
             // 2. Parse and process the text, handling special commands
             await ProcessTextWithCommands(text);
@@ -148,7 +162,7 @@ namespace TypeIt4Me.Services
             if (SpecialKeys.TryGetValue(command, out ushort vkCode))
             {
                 SendVirtualKey(vkCode);
-                await Task.Delay(10); // Small delay after special key
+                await Task.Delay(KeyPressDelayMs); // Small delay after special key
             }
             // If not recognized, type it literally including the braces
             else
@@ -167,7 +181,7 @@ namespace TypeIt4Me.Services
             {
                 string batch = text.Substring(i, Math.Min(BatchSize, text.Length - i));
                 SendInputBatch(batch);
-                await Task.Delay(10);
+                await Task.Delay(BatchDelayMs);
             }
         }
 
