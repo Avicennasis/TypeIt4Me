@@ -36,7 +36,7 @@ namespace TypeIt4Me.Services
             { "PGUP", 0x21 },
             { "PAGEDOWN", 0x22 },
             { "PGDN", 0x22 },
-            
+
             // Arrow keys
             { "ARROWUP", 0x26 },
             { "UP", 0x26 },
@@ -46,7 +46,7 @@ namespace TypeIt4Me.Services
             { "LEFT", 0x25 },
             { "ARROWRIGHT", 0x27 },
             { "RIGHT", 0x27 },
-            
+
             // Modifier keys
             { "SHIFT", 0x10 },
             { "CTRL", 0x11 },
@@ -56,18 +56,18 @@ namespace TypeIt4Me.Services
             { "WIN", 0x5B },
             { "LWIN", 0x5B },
             { "RWIN", 0x5C },
-            
+
             // Toggle keys
             { "CAPSLOCK", 0x14 },
             { "CAPS", 0x14 },
             { "NUMLOCK", 0x90 },
             { "SCROLLLOCK", 0x91 },
-            
+
             // Special keys
             { "PRINTSCREEN", 0x2C },
             { "PRTSC", 0x2C },
             { "SPACE", 0x20 },
-            
+
             // Function keys
             { "F1", 0x70 },
             { "F2", 0x71 },
@@ -187,15 +187,15 @@ namespace TypeIt4Me.Services
 
         private void ReleaseModifiers()
         {
-            var keys = new[] 
-            { 
+            var keys = new[]
+            {
                 (ushort)0x5B, // Left Win
                 (ushort)0x5C, // Right Win
                 (ushort)0x10, // Shift
                 (ushort)0x11, // Ctrl
                 (ushort)0x12  // Alt
             };
-            
+
             var inputs = new List<NativeMethods.INPUT>();
             foreach(var k in keys)
             {
@@ -207,7 +207,7 @@ namespace TypeIt4Me.Services
                    {
                        ki = new NativeMethods.KEYBDINPUT
                        {
-                           wVk = k, 
+                           wVk = k,
                            dwFlags = NativeMethods.KEYEVENTF_KEYUP,
                            time = 0,
                            dwExtraInfo = NativeMethods.GetMessageExtraInfo()
@@ -263,7 +263,8 @@ namespace TypeIt4Me.Services
 
         private void SendInputBatch(string text)
         {
-            var inputs = new List<NativeMethods.INPUT>();
+            var inputs = new NativeMethods.INPUT[text.Length * 2];
+            int count = 0;
 
             foreach (char c in text)
             {
@@ -275,11 +276,11 @@ namespace TypeIt4Me.Services
                     // Windows text typically uses \r\n, so we only act on \n
                     continue;
                 }
-                
+
                 if (c == '\n')
                 {
                     // Send Enter key (VK_RETURN = 0x0D) as a virtual key press
-                    var enterDown = new NativeMethods.INPUT
+                    inputs[count++] = new NativeMethods.INPUT
                     {
                         type = NativeMethods.INPUT_KEYBOARD,
                         U = new NativeMethods.InputUnion
@@ -293,9 +294,8 @@ namespace TypeIt4Me.Services
                             }
                         }
                     };
-                    inputs.Add(enterDown);
 
-                    var enterUp = new NativeMethods.INPUT
+                    inputs[count++] = new NativeMethods.INPUT
                     {
                         type = NativeMethods.INPUT_KEYBOARD,
                         U = new NativeMethods.InputUnion
@@ -309,12 +309,11 @@ namespace TypeIt4Me.Services
                             }
                         }
                     };
-                    inputs.Add(enterUp);
                     continue;
                 }
 
                 // Key Down (Unicode character)
-                var down = new NativeMethods.INPUT
+                inputs[count++] = new NativeMethods.INPUT
                 {
                     type = NativeMethods.INPUT_KEYBOARD,
                     U = new NativeMethods.InputUnion
@@ -328,10 +327,9 @@ namespace TypeIt4Me.Services
                         }
                     }
                 };
-                inputs.Add(down);
 
                 // Key Up
-                var up = new NativeMethods.INPUT
+                inputs[count++] = new NativeMethods.INPUT
                 {
                     type = NativeMethods.INPUT_KEYBOARD,
                     U = new NativeMethods.InputUnion
@@ -345,13 +343,11 @@ namespace TypeIt4Me.Services
                         }
                     }
                 };
-                inputs.Add(up);
             }
 
-            if (inputs.Count > 0)
+            if (count > 0)
             {
-                NativeMethods.INPUT[] inputArr = inputs.ToArray();
-                NativeMethods.SendInput((uint)inputArr.Length, inputArr, NativeMethods.INPUT.Size);
+                NativeMethods.SendInput((uint)count, inputs, NativeMethods.INPUT.Size);
             }
         }
     }
