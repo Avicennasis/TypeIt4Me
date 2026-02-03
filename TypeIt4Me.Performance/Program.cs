@@ -6,7 +6,7 @@ namespace TypeIt4Me.Performance
     {
         public static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<InputInjectorBenchmark>();
+            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
         }
     }
 }
