@@ -26,7 +26,7 @@ namespace TypeIt4Me
             this.DispatcherUnhandledException += App_DispatcherUnhandledException;
         }
 
-        private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        private async void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
             // Security: Show generic error to user, log detailed info to file only
             string userMessage = $"An unexpected error occurred: {e.Exception.Message}\n\nPlease check the error log for details.";
@@ -35,6 +35,8 @@ namespace TypeIt4Me
                                 $"Message: {e.Exception.Message}\n" +
                                 $"Stack Trace:\n{e.Exception.StackTrace}\n" +
                                 $"--------------------------------------------------\n";
+
+            e.Handled = true; // Prevent crash if possible
 
             MessageBox.Show(userMessage, "TypeIt4Me Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
@@ -45,18 +47,16 @@ namespace TypeIt4Me
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                     "TypeIt4Me",
                     "error.log");
-                System.IO.File.AppendAllText(logPath, detailedLog);
+                await System.IO.File.AppendAllTextAsync(logPath, detailedLog);
             }
             catch { /* Ignore logging failure */ }
-
-            e.Handled = true; // Prevent crash if possible
         }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            try 
+            try
             {
                 // 1. Initialize Services
                 _snippetManager = new SnippetManager();
@@ -65,25 +65,25 @@ namespace TypeIt4Me
                 _focusTracker = new FocusTracker();
                 _settingsManager = new SettingsManager();
                 _themeService = new ThemeService();
-                
+
                 // 2. Load Data
                 await _settingsManager.LoadSettingsAsync();
                 await _snippetManager.LoadSnippetsAsync();
-                
+
                 // AutoLock needs settings loaded
                 _autoLockService = new AutoLockService(_settingsManager);
 
                 // 3. Initialize ViewModel (Inject Services)
-                _mainViewModel = new MainViewModel(_snippetManager, _hotkeyManager, _inputInjector, 
-                                                 _focusTracker, _settingsManager, 
+                _mainViewModel = new MainViewModel(_snippetManager, _hotkeyManager, _inputInjector,
+                                                 _focusTracker, _settingsManager,
                                                  _autoLockService, _themeService);
-                                                 
+
                 _mainViewModel.RequestSnippetEditor += MainViewModel_RequestSnippetEditor;
                 _mainViewModel.RequestPinSet += MainViewModel_RequestPinSet;
-                
+
                 // _themeService handles theme changes directly now, no event bubble up needed.
                 // _mainViewModel.RequestThemeChange += MainViewModel_RequestThemeChange; // REMOVED
-                
+
                 _mainViewModel.RequestPinInput += MainViewModel_RequestPinInput;
                 _mainViewModel.RequestLockState += MainViewModel_RequestLockState;
                 _mainViewModel.RequestUnlock += MainViewModel_RequestUnlock;
@@ -95,7 +95,7 @@ namespace TypeIt4Me
                 {
                     DataContext = _mainViewModel
                 };
-                
+
                 // Set initial theme - ViewModel does this in constructor/LoadSettings now via Service
                 // MainViewModel_RequestThemeChange(_settingsManager.Settings.IsDarkMode);
 
@@ -147,7 +147,7 @@ namespace TypeIt4Me
                  // Register hotkeys AFTER loading (or re-loading) snippets
                 _mainWindow.SourceInitialized += MainWindow_SourceInitialized;
                 _mainWindow.Show();
-                
+
                 // If we re-loaded after SourceInitialized/Show, we might need to manually trigger hotkey registration if logic was there.
                 // SourceInitialized calls RegisterSnippetHotkey loop.
                 // So if we await LoadSnippetsAsync BEFORE SourceInitialized, it should be fine.
@@ -227,10 +227,10 @@ namespace TypeIt4Me
                         failedSnippets.Add(snippet.Name);
                     }
                 }
-                
+
                 if (failedSnippets.Count > 0)
                 {
-                    string msg = "Failed to register hotkeys for the following snippets (likely conflicts):\n\n" + 
+                    string msg = "Failed to register hotkeys for the following snippets (likely conflicts):\n\n" +
                                  string.Join("\n", failedSnippets);
                     MessageBox.Show(msg, "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
@@ -241,11 +241,11 @@ namespace TypeIt4Me
         {
             // If new snippet, snippet object is empty or pre-filled.
             // If editing, it's the existing reference.
-            
+
             // We clone logic if we want cancel support (MVVM pattern), but for MVP modifying directly is risky but simple.
             // Better: use a clone/copy, then update if Save=true.
             // But SnippetEditorViewModel logic updates the object on Save.
-            
+
             var vm = new SnippetEditorViewModel(snippet);
             var win = new SnippetEditorWindow
             {
@@ -283,7 +283,7 @@ namespace TypeIt4Me
         private void ReloadHotkeys()
         {
             if (_hotkeyManager == null || _snippetManager == null) return;
-            
+
             _hotkeyManager.ClearRegistrations();
 
             var failedSnippets = new System.Collections.Generic.List<string>();
@@ -294,7 +294,7 @@ namespace TypeIt4Me
                      failedSnippets.Add(snippet.Name);
                 }
             }
-             
+
             // Only warn if this was a manual reload or bulk op; for individual add, we handle separately
             if (failedSnippets.Count > 0)
             {
@@ -306,17 +306,17 @@ namespace TypeIt4Me
         {
              if (_hotkeyManager != null && snippet.TriggerKey != System.Windows.Input.Key.None)
              {
-                 int id = _hotkeyManager.Register(snippet.TriggerKey, snippet.TriggerModifiers, async () => 
+                 int id = _hotkeyManager.Register(snippet.TriggerKey, snippet.TriggerModifiers, async () =>
                  {
                       if (_mainViewModel != null)
                       {
-                          await Application.Current.Dispatcher.InvokeAsync(async () => 
+                          await Application.Current.Dispatcher.InvokeAsync(async () =>
                           {
                                await _mainViewModel.TriggerSnippetCommand.ExecuteAsync(snippet);
                           });
                       }
                  });
-                 
+
                  return id != 0;
              }
              return true; // No hotkey to register count as success
@@ -354,7 +354,7 @@ namespace TypeIt4Me
              if (!string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
              {
                  bool authenticated = false;
-                 
+
                  while (!authenticated)
                  {
                      var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
@@ -397,7 +397,7 @@ namespace TypeIt4Me
                  callback(inputWin.Result);
              }
         }
-        
+
         private void MainViewModel_RequestShowHelp()
         {
              var helpWin = new Views.HelpWindow();
