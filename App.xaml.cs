@@ -315,7 +315,7 @@ namespace TypeIt4Me
                                await _mainViewModel.TriggerSnippetCommand.ExecuteAsync(snippet);
                           });
                       }
-                 });
+                 }, snippet.Id);
 
                  return id != 0;
              }

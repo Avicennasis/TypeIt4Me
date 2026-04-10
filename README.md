@@ -1,5 +1,7 @@
 # TypeIt4Me
 
+[![CI](https://github.com/Avicennasis/TypeIt4Me/actions/workflows/ci.yml/badge.svg)](https://github.com/Avicennasis/TypeIt4Me/actions/workflows/ci.yml)
+
 A lightweight, secure text expansion tool for Windows built with .NET 8 and WPF.
 
 ## Features

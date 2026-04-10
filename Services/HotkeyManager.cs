@@ -12,6 +12,7 @@ namespace TypeIt4Me.Services
         private HwndSource _source;
         private int _currentId;
         private readonly Dictionary<int, Action> _callbacks = new Dictionary<int, Action>();
+        private readonly Dictionary<Guid, int> _snippetMap = new Dictionary<Guid, int>();
 
         public void Initialize(IntPtr windowHandle)
         {
@@ -43,6 +44,23 @@ namespace TypeIt4Me.Services
             return 0; // Failed
         }
 
+        public int Register(Key key, ModifierKeys modifiers, Action callback, Guid snippetId)
+        {
+            int id = Register(key, modifiers, callback);
+            if (id != 0)
+                _snippetMap[snippetId] = id;
+            return id;
+        }
+
+        public void UnregisterBySnippetId(Guid snippetId)
+        {
+            if (_snippetMap.TryGetValue(snippetId, out int id))
+            {
+                Unregister(id);
+                _snippetMap.Remove(snippetId);
+            }
+        }
+
         public void Unregister(int id)
         {
             if (_callbacks.ContainsKey(id))
@@ -59,6 +77,7 @@ namespace TypeIt4Me.Services
                 NativeMethods.UnregisterHotKey(_windowHandle, id);
             }
             _callbacks.Clear();
+            _snippetMap.Clear();
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

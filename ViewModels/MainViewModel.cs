@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
-using System.Collections.ObjectModel;
+
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -79,7 +79,7 @@ namespace TypeIt4Me.ViewModels
         public bool IsAutoLock1Min => AutoLockMinutes == 1;
         public bool IsAutoLock5Min => AutoLockMinutes == 5;
 
-        public ObservableCollection<Snippet> FilteredSnippets { get; } = new ObservableCollection<Snippet>();
+        public BulkObservableCollection<Snippet> FilteredSnippets { get; } = new BulkObservableCollection<Snippet>();
 
         public MainViewModel(SnippetManager snippetManager, HotkeyManager hotkeyManager, InputInjector inputInjector, 
                              FocusTracker focusTracker, SettingsManager settingsManager, 
@@ -191,19 +191,15 @@ namespace TypeIt4Me.ViewModels
 
         private void RefreshSnippets()
         {
-            FilteredSnippets.Clear();
             var query = _snippetManager.Snippets.AsEnumerable();
-            
+
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
-                query = query.Where(s => s.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) || 
+                query = query.Where(s => s.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
                                          (s.Category != null && s.Category.Contains(SearchText, StringComparison.OrdinalIgnoreCase)));
             }
 
-            foreach (var s in query)
-            {
-                FilteredSnippets.Add(s);
-            }
+            FilteredSnippets.ReplaceAll(query);
             
             // Re-register hotkeys? 
             // In a real app we'd diff and update. For MVP, we can treat this separately or just register all on Load.
@@ -259,16 +255,10 @@ namespace TypeIt4Me.ViewModels
         {
             if (snippet == null) return;
             
-            // Unregister hotkey if any
-            // _hotkeyManager.Unregister(...) - TODO: We need to map Snippet ID to Hotkey ID.
-            
-            _snippetManager.RemoveSnippet(snippet);
+            _hotkeyManager.UnregisterBySnippetId(snippet.Id);
 
-            // Re-save
+            _snippetManager.RemoveSnippet(snippet);
             await _snippetManager.SaveSnippetsAsync();
-            // Reload hotkeys logic is in App.xaml.cs listening to collection change? 
-            // Or we need to fire event. 
-            // Currently App.xaml.cs handles Add/Edit via callback. Delete is direct check.
         }
 
         [RelayCommand]

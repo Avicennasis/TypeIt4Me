@@ -1,14 +1,14 @@
-name: CI
+name: Release
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags: ['v*']
 
 jobs:
-  build-test:
+  release:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -24,20 +24,13 @@ jobs:
         run: dotnet build TypeIt4Me.sln -c Release --no-restore
 
       - name: Test
-        run: dotnet test TypeIt4Me.sln -c Release --no-build --logger "trx;LogFileName=results.trx" --logger "console;verbosity=normal"
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: "**/TestResults/*.trx"
+        run: dotnet test TypeIt4Me.sln -c Release --no-build --logger "console;verbosity=normal"
 
       - name: Publish single-file exe
         run: dotnet publish TypeIt4Me.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: TypeIt4Me
-          path: publish/TypeIt4Me.exe
+          files: publish/TypeIt4Me.exe
+          generate_release_notes: true

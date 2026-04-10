@@ -17,7 +17,7 @@ namespace TypeIt4Me.Services
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);
         private string? _currentPin = ""; // Store PIN in memory for crypto operations
 
-        public ObservableCollection<Snippet> Snippets { get; private set; } = new ObservableCollection<Snippet>();
+        public BulkObservableCollection<Snippet> Snippets { get; private set; } = new BulkObservableCollection<Snippet>();
 
         public void SetPin(string pin)
         {
@@ -54,7 +54,7 @@ namespace TypeIt4Me.Services
                         // Not plain text JSON. Try decrypting.
                         if (!string.IsNullOrEmpty(_currentPin))
                         {
-                            string decrypted = CryptoService.Decrypt(content, _currentPin);
+                            string decrypted = await Task.Run(() => CryptoService.Decrypt(content, _currentPin));
                             if (!string.IsNullOrEmpty(decrypted))
                             {
                                 loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
@@ -64,11 +64,7 @@ namespace TypeIt4Me.Services
 
                     if (loaded != null)
                     {
-                        Snippets.Clear();
-                        foreach (var snippet in loaded)
-                        {
-                            Snippets.Add(snippet);
-                        }
+                        Snippets.ReplaceAll(loaded);
                     }
                 }
                 finally
@@ -97,7 +93,7 @@ namespace TypeIt4Me.Services
                 if (!string.IsNullOrEmpty(_currentPin))
                 {
                     // Encrypt with V3 (AES-256 + HMAC)
-                    string encrypted = CryptoService.Encrypt(json, _currentPin);
+                    string encrypted = await Task.Run(() => CryptoService.Encrypt(json, _currentPin));
                     await File.WriteAllTextAsync(tempPath, encrypted);
                 }
                 else
@@ -174,7 +170,7 @@ namespace TypeIt4Me.Services
                     
                     if (!string.IsNullOrEmpty(importPin))
                     {
-                         string decrypted = CryptoService.Decrypt(content, importPin);
+                         string decrypted = await Task.Run(() => CryptoService.Decrypt(content, importPin));
                          if (!string.IsNullOrEmpty(decrypted))
                          {
                              try { loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted); } catch { }
@@ -183,7 +179,7 @@ namespace TypeIt4Me.Services
                     
                     if (loaded == null && !string.IsNullOrEmpty(_currentPin))
                     {
-                        string decrypted = CryptoService.Decrypt(content, _currentPin);
+                        string decrypted = await Task.Run(() => CryptoService.Decrypt(content, _currentPin));
                         if (!string.IsNullOrEmpty(decrypted))
                         {
                              try { loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted); } catch { }
@@ -194,10 +190,8 @@ namespace TypeIt4Me.Services
                 if (loaded != null)
                 {
                      foreach (var snippet in loaded)
-                     {
                          snippet.Id = Guid.NewGuid();
-                         Snippets.Add(snippet);
-                     }
+                     Snippets.AddRange(loaded);
                      await SaveSnippetsAsync();
                      return true;
                 }
