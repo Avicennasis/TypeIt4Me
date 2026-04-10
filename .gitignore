@@ -1,3 +1,10 @@
 bin/
 obj/
 BenchmarkDotNet.Artifacts/
+*.exe
+*.dll
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+publish/
+TestResults/
