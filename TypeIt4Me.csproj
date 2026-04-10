@@ -20,6 +20,8 @@
   <ItemGroup>
     <Resource Include="TypeIt4Me.ico" />
     <Compile Remove="IconGen\**" />
+    <Compile Remove="TypeIt4Me.Tests\**" />
+    <Compile Remove="TypeIt4Me.Performance\**" />
     <EmbeddedResource Remove="IconGen\**" />
     <None Remove="IconGen\**" />
   </ItemGroup>
