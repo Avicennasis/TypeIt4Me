@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore TypeIt4Me.sln
+
+      - name: Build
+        run: dotnet build TypeIt4Me.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test TypeIt4Me.sln -c Release --no-build --logger "console;verbosity=normal"
+
+      - name: Publish single-file exe
+        run: dotnet publish TypeIt4Me.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TypeIt4Me
+          path: publish/TypeIt4Me.exe
