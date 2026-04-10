@@ -1,6 +1,6 @@
 # TypeIt4Me
 
-A lightweight, secure text expansion tool for Windows built with .NET 6 and WPF.
+A lightweight, secure text expansion tool for Windows built with .NET 8 and WPF.
 
 ## Features
 
