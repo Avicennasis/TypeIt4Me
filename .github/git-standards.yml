@@ -1,0 +1,8 @@
+# Persistent /git-standards configuration for this repo.
+# Schema: see ~/github/wiki.simmons.systems/operations/new-github-repo-setup.md
+
+# Existing tags (v1.7.0+) and the repo already ships an operator-managed
+# .NET release pipeline (.github/workflows/release.yml builds + publishes
+# a single-file Windows exe). /git-standards has no .NET/WiX release
+# template, so opting out avoids clobbering the working pipeline.
+release_artifacts: false

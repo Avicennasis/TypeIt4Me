@@ -1,2 +1,40 @@
-# Enforce LF line endings for all text files
 * text=auto eol=lf
+
+*.cs    text diff=csharp
+*.cpp   text
+*.h     text
+*.py text diff=python
+*.sh text eol=lf
+*.md text
+*.yml text
+*.yaml text
+*.toml text
+*.cfg text
+*.ini text
+
+# Visual Studio binaries / build outputs
+*.dll binary
+*.exe binary
+*.pdb binary
+*.suo binary
+*.snk binary
+*.pfx binary
+*.ico binary
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+
+# Exclude from git archive (GitHub release tarballs)
+.github/                 export-ignore
+tests/                   export-ignore
+bin/                     export-ignore
+.gitattributes           export-ignore
+.gitignore               export-ignore
+.editorconfig            export-ignore
+.pre-commit-config.yaml  export-ignore
+CHANGELOG.md             export-ignore
+CONTRIBUTING.md          export-ignore
+CODE_OF_CONDUCT.md       export-ignore
+SECURITY.md              export-ignore

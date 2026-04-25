@@ -1,6 +1,10 @@
 # TypeIt4Me
 
-[![CI](https://github.com/Avicennasis/TypeIt4Me/actions/workflows/ci.yml/badge.svg)](https://github.com/Avicennasis/TypeIt4Me/actions/workflows/ci.yml)
+[![CI](https://github.com/Avicennasis/TypeIt4Me/actions/workflows/test.yml/badge.svg)](https://github.com/Avicennasis/TypeIt4Me/actions/workflows/test.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Avicennasis/TypeIt4Me/badge)](https://scorecard.dev/viewer/?uri=github.com/Avicennasis/TypeIt4Me)
+[![Release](https://img.shields.io/github/v/release/Avicennasis/TypeIt4Me?display_name=tag)](https://github.com/Avicennasis/TypeIt4Me/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 A lightweight, secure text expansion tool for Windows built with .NET 8 and WPF.
 
