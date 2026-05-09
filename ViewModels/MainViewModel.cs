@@ -264,9 +264,10 @@ namespace TypeIt4Me.ViewModels
         [RelayCommand]
         private async Task AddSnippet()
         {
-            // Open Editor
-            // This requires View interaction. For MVP using a simple event or service?
-            // Or just firing an event that CodeBehind listens to.
+            // Ask the view to open the editor for a brand-new snippet.
+            // The view (App.xaml.cs) subscribes to RequestSnippetEditor and is
+            // the only layer that knows about WPF windows — this keeps the
+            // ViewModel free of UI dependencies and unit-testable in isolation.
             RequestSnippetEditor?.Invoke(new Snippet());
             await Task.CompletedTask;
         }
