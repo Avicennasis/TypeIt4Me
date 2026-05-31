@@ -32,6 +32,7 @@ jobs:
         with:
           name: test-results
           path: "**/TestResults/*.trx"
+          retention-days: 7
 
       - name: Publish single-file exe
         run: dotnet publish TypeIt4Me.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish/
@@ -41,3 +42,4 @@ jobs:
         with:
           name: TypeIt4Me
           path: publish/TypeIt4Me.exe
+          retention-days: 5
