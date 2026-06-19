@@ -61,7 +61,7 @@
                      <TextBlock Text="v1.6.0" FontSize="14" HorizontalAlignment="Center" Foreground="Gray" Margin="0,0,0,20"/>
                      
                      <TextBlock Text="Created by Léon &quot;Avic&quot; Simmons" HorizontalAlignment="Center" FontSize="16" Foreground="{DynamicResource TextForeground}"/>
-                     <TextBlock Text="http://github.com/avicennasis/TypeIt4Me" HorizontalAlignment="Center" Foreground="DodgerBlue" Cursor="Hand" MouseDown="Link_MouseDown" Margin="0,5,0,20" TextDecorations="Underline"/>
+                     <TextBlock Text="https://github.com/avicennasis/TypeIt4Me" HorizontalAlignment="Center" Foreground="DodgerBlue" Cursor="Hand" MouseDown="Link_MouseDown" Margin="0,5,0,20" TextDecorations="Underline"/>
                      
                      <TextBlock Text="Licenses" FontWeight="Bold" Margin="0,20,0,5" Foreground="{DynamicResource TextForeground}"/>
                      <TextBox IsReadOnly="True" Height="150" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputForeground}" BorderThickness="0" Padding="5">
