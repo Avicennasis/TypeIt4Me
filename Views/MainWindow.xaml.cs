@@ -46,7 +46,15 @@ namespace TypeIt4Me.Views
 
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
-            Application.Current.Shutdown();
+            try
+            {
+                Application.Current.Shutdown();
+            }
+            catch { }
+            finally
+            {
+                Environment.Exit(0);
+            }
         }
 
         protected override void OnStateChanged(EventArgs e)
@@ -74,7 +82,15 @@ namespace TypeIt4Me.Views
                 else
                 {
                     // Ensure full shutdown for debugging purposes if implicit shutdown fails
-                    Application.Current.Shutdown();
+                    try
+                    {
+                        Application.Current.Shutdown();
+                    }
+                    catch { }
+                    finally
+                    {
+                        Environment.Exit(0);
+                    }
                 }
             }
         }
