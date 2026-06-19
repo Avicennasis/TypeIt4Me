@@ -144,7 +144,15 @@ namespace TypeIt4Me
             catch (Exception ex)
             {
                  MessageBox.Show($"Critical Error during startup: {ex.Message}", "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                 Shutdown();
+                 try
+                 {
+                     Shutdown();
+                 }
+                 catch { }
+                 finally
+                 {
+                     Environment.Exit(1);
+                 }
             }
         }
 
@@ -397,6 +405,7 @@ namespace TypeIt4Me
         {
             _hotkeyManager?.Dispose();
             _focusTracker?.Dispose();
+            _autoLockService?.Dispose();
             base.OnExit(e);
         }
     }
