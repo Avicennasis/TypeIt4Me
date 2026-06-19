@@ -9,6 +9,7 @@ namespace TypeIt4Me
 {
     public partial class App : Application
     {
+        private ILogger? _logger;
         private SnippetManager? _snippetManager;
         private HotkeyManager? _hotkeyManager;
         private InputInjector? _inputInjector;
@@ -26,30 +27,17 @@ namespace TypeIt4Me
             this.DispatcherUnhandledException += App_DispatcherUnhandledException;
         }
 
-        private async void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
             // Security: Show generic error to user, log detailed info to file only
             string userMessage = $"An unexpected error occurred: {e.Exception.Message}\n\nPlease check the error log for details.";
-            string detailedLog = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\n" +
-                                $"Exception Type: {e.Exception.GetType().FullName}\n" +
-                                $"Message: {e.Exception.Message}\n" +
-                                $"Stack Trace:\n{e.Exception.StackTrace}\n" +
-                                $"--------------------------------------------------\n";
 
             e.Handled = true; // Prevent crash if possible
 
             MessageBox.Show(userMessage, "TypeIt4Me Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
             // Log detailed information to file (secure location)
-            try
-            {
-                string logPath = System.IO.Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "TypeIt4Me",
-                    "error.log");
-                await System.IO.File.AppendAllTextAsync(logPath, detailedLog);
-            }
-            catch { /* Ignore logging failure */ }
+            _logger?.LogError("Unhandled Dispatcher Exception", e.Exception);
         }
 
         protected override async void OnStartup(StartupEventArgs e)
@@ -59,11 +47,12 @@ namespace TypeIt4Me
             try
             {
                 // 1. Initialize Services
-                _snippetManager = new SnippetManager();
+                _logger = new FileLogger();
+                _snippetManager = new SnippetManager(_logger);
                 _hotkeyManager = new HotkeyManager();
                 _inputInjector = new InputInjector();
                 _focusTracker = new FocusTracker();
-                _settingsManager = new SettingsManager();
+                _settingsManager = new SettingsManager(_logger);
                 _themeService = new ThemeService();
 
                 // 2. Load Data

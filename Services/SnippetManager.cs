@@ -14,10 +14,16 @@ namespace TypeIt4Me.Services
     /// </summary>
     public class SnippetManager
     {
+        private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);
         private string? _currentPin = ""; // Store PIN in memory for crypto operations
 
         public BulkObservableCollection<Snippet> Snippets { get; private set; } = new BulkObservableCollection<Snippet>();
+
+        public SnippetManager(ILogger logger)
+        {
+            _logger = logger;
+        }
 
         public void SetPin(string pin)
         {
@@ -74,7 +80,7 @@ namespace TypeIt4Me.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading snippets: {ex.Message}");
+                _logger.LogError("Error loading snippets", ex);
             }
         }
 
@@ -108,7 +114,7 @@ namespace TypeIt4Me.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error saving snippets: {ex.Message}");
+                _logger.LogError("Error saving snippets", ex);
                 throw; // Re-throw to allow caller to handle
             }
             finally
@@ -199,7 +205,7 @@ namespace TypeIt4Me.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error importing snippets: {ex.Message}");
+                _logger.LogError("Error importing snippets", ex);
                 return false;
             }
         }
@@ -228,7 +234,7 @@ namespace TypeIt4Me.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Background save failed after AddSnippet: {ex.Message}");
+                    _logger.LogError("Background save failed after AddSnippet", ex);
                 }
             });
         }
@@ -244,7 +250,7 @@ namespace TypeIt4Me.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Background save failed after RemoveSnippet: {ex.Message}");
+                    _logger.LogError("Background save failed after RemoveSnippet", ex);
                 }
             });
         }

@@ -8,10 +8,15 @@ namespace TypeIt4Me.Services
 {
     public class SettingsManager
     {
-
+        private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);
 
         public AppSettings Settings { get; private set; } = new AppSettings();
+
+        public SettingsManager(ILogger logger)
+        {
+            _logger = logger;
+        }
 
         private string GetFilePath()
         {
@@ -50,7 +55,7 @@ namespace TypeIt4Me.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading settings: {ex.Message}");
+                _logger.LogError("Error loading settings", ex);
             }
         }
         public async Task SaveSettingsAsync()
@@ -73,7 +78,7 @@ namespace TypeIt4Me.Services
             }
             catch (Exception ex)
             {
-                 System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
+                 _logger.LogError("Error saving settings", ex);
             }
             finally
             {
