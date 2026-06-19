@@ -30,31 +30,29 @@ namespace TypeIt4Me.Services
             return Convert.ToBase64String(bytes);
         }
 
-        public static string HashPin(string pin, string salt)
+        public static string HashPin(ReadOnlySpan<char> pin, string salt)
         {
-            if (string.IsNullOrEmpty(pin)) return string.Empty;
-            
+            if (pin.IsEmpty) return string.Empty;
+
             byte[] saltBytes = Convert.FromBase64String(salt);
-            byte[]? hash = null;
-            
-            try 
+            byte[] hash = new byte[32];
+
+            try
             {
-                using var pbkdf2 = new Rfc2898DeriveBytes(pin, saltBytes, Iterations, HashAlgorithmName.SHA256);
-                hash = pbkdf2.GetBytes(32); // 256-bit hash
+                Rfc2898DeriveBytes.Pbkdf2(pin, saltBytes, hash, Iterations, HashAlgorithmName.SHA256);
                 return Convert.ToBase64String(hash);
             }
             finally
             {
-                if (hash != null) Array.Clear(hash, 0, hash.Length);
-                // Note: saltBytes is from base64 string, harder to clear effectively in managed code without pinning, 
-                // but we clear the output hash at least.
+                Array.Clear(hash, 0, hash.Length);
+                Array.Clear(saltBytes, 0, saltBytes.Length);
             }
         }
 
-        public static string Encrypt(string plainText, string pin)
+        public static string Encrypt(string plainText, ReadOnlySpan<char> pin)
         {
             if (string.IsNullOrEmpty(plainText)) return "";
-            if (string.IsNullOrEmpty(pin)) return plainText;
+            if (pin.IsEmpty) return plainText;
 
             // Input validation to prevent DoS
             if (plainText.Length > MaxPlainTextSize)
@@ -79,12 +77,25 @@ namespace TypeIt4Me.Services
             try
             {
                 using var aes = Aes.Create();
-                using var keyDerivation = new Rfc2898DeriveBytes(pin, salt, Iterations, HashAlgorithmName.SHA256);
 
                 // Derive separate keys for encryption and authentication
-                encryptionKey = keyDerivation.GetBytes(32); // 256-bit AES Key
-                iv = keyDerivation.GetBytes(16);            // 128-bit IV
-                hmacKey = keyDerivation.GetBytes(32);       // 256-bit HMAC Key
+                byte[] derivedBytes = new byte[32 + 16 + 32];
+                try
+                {
+                    Rfc2898DeriveBytes.Pbkdf2(pin, salt, derivedBytes, Iterations, HashAlgorithmName.SHA256);
+
+                    encryptionKey = new byte[32];
+                    iv = new byte[16];
+                    hmacKey = new byte[32];
+
+                    Buffer.BlockCopy(derivedBytes, 0, encryptionKey, 0, 32);
+                    Buffer.BlockCopy(derivedBytes, 32, iv, 0, 16);
+                    Buffer.BlockCopy(derivedBytes, 48, hmacKey, 0, 32);
+                }
+                finally
+                {
+                    Array.Clear(derivedBytes, 0, derivedBytes.Length);
+                }
 
                 aes.Key = encryptionKey;
                 aes.IV = iv;
@@ -128,10 +139,10 @@ namespace TypeIt4Me.Services
             }
         }
 
-        public static string? Decrypt(string cipherText, string pin)
+        public static string? Decrypt(string cipherText, ReadOnlySpan<char> pin)
         {
             if (string.IsNullOrEmpty(cipherText)) return "";
-            if (string.IsNullOrEmpty(pin)) return cipherText;
+            if (pin.IsEmpty) return cipherText;
 
             byte[]? encryptionKey = null;
             byte[]? hmacKey = null;
@@ -180,10 +191,22 @@ namespace TypeIt4Me.Services
                 }
 
                 // Derive keys from PIN
-                using var keyDerivation = new Rfc2898DeriveBytes(pin, salt, Iterations, HashAlgorithmName.SHA256);
-                encryptionKey = keyDerivation.GetBytes(32); // 256-bit AES Key
-                keyDerivation.GetBytes(16); // Skip the IV bytes we derived during encryption
-                hmacKey = keyDerivation.GetBytes(32);       // 256-bit HMAC Key
+                byte[] derivedBytes = new byte[32 + 16 + 32];
+                try
+                {
+                    Rfc2898DeriveBytes.Pbkdf2(pin, salt, derivedBytes, Iterations, HashAlgorithmName.SHA256);
+
+                    encryptionKey = new byte[32];
+                    hmacKey = new byte[32];
+
+                    Buffer.BlockCopy(derivedBytes, 0, encryptionKey, 0, 32);
+                    // Skip 16 bytes for the IV (derived during encryption, but read from the stream here)
+                    Buffer.BlockCopy(derivedBytes, 48, hmacKey, 0, 32);
+                }
+                finally
+                {
+                    Array.Clear(derivedBytes, 0, derivedBytes.Length);
+                }
 
                 // Verify HMAC before attempting decryption (Authenticate-then-Decrypt)
                 byte[] computedHmac;
