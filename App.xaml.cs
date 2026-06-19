@@ -70,9 +70,6 @@ namespace TypeIt4Me
                 _mainViewModel.RequestSnippetEditor += MainViewModel_RequestSnippetEditor;
                 _mainViewModel.RequestPinSet += MainViewModel_RequestPinSet;
 
-                // _themeService handles theme changes directly now, no event bubble up needed.
-                // _mainViewModel.RequestThemeChange += MainViewModel_RequestThemeChange; // REMOVED
-
                 _mainViewModel.RequestPinInput += MainViewModel_RequestPinInput;
                 _mainViewModel.RequestLockState += MainViewModel_RequestLockState;
                 _mainViewModel.RequestUnlock += MainViewModel_RequestUnlock;
@@ -84,9 +81,6 @@ namespace TypeIt4Me
                 {
                     DataContext = _mainViewModel
                 };
-
-                // Set initial theme - ViewModel does this in constructor/LoadSettings now via Service
-                // MainViewModel_RequestThemeChange(_settingsManager.Settings.IsDarkMode);
 
                 // Check PIN before showing (V3 only - requires salt)
                 if (!string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
