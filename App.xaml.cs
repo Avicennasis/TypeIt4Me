@@ -103,7 +103,7 @@ namespace TypeIt4Me
                             if (pinWin.ShowDialog() == true)
                             {
                                 // Validate PIN using salted hash (V3 only)
-                                string hash = Services.CryptoService.HashPin(pinWin.Pin, _settingsManager.Settings.PinSalt);
+                                string hash = Services.CryptoService.HashPin(pinWin.Pin.AsSpan(), _settingsManager.Settings.PinSalt);
                                 if (hash == _settingsManager.Settings.PinHash)
                                 {
                                     unlocked = true;
@@ -180,7 +180,7 @@ namespace TypeIt4Me
 
                  // Generate Salt and Hash
                  string salt = Services.CryptoService.GenerateSalt();
-                 string hash = Services.CryptoService.HashPin(pinWin.Pin, salt);
+                 string hash = Services.CryptoService.HashPin(pinWin.Pin.AsSpan(), salt);
 
                  _settingsManager.Settings.PinSalt = salt;
                  _settingsManager.Settings.PinHash = hash;
@@ -352,7 +352,7 @@ namespace TypeIt4Me
                      if (pinWin.ShowDialog() == true)
                      {
                          // Use Salted Check
-                         string hash = Services.CryptoService.HashPin(pinWin.Pin, _settingsManager.Settings.PinSalt);
+                         string hash = Services.CryptoService.HashPin(pinWin.Pin.AsSpan(), _settingsManager.Settings.PinSalt);
                          if (hash == _settingsManager.Settings.PinHash)
                          {
                              authenticated = true;

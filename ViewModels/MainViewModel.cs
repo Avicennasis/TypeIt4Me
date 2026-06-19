@@ -414,6 +414,8 @@ namespace TypeIt4Me.ViewModels
         public void LockApp()
         {
             IsLocked = true;
+            // Clear PIN from memory on lock
+            _snippetManager.SetPin(string.Empty);
             // Clear snippets from memory? MVP: No, just hide UI.
         }
 

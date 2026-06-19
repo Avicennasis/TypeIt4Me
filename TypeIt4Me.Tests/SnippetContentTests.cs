@@ -20,7 +20,7 @@ public class SnippetContentTests
     {
         string json = PlainJson(("Greeting", "Hello"));
 
-        var result = SnippetManager.TryDeserializeSnippets(json, null);
+        var result = SnippetManager.TryDeserializeSnippets(json, default);
 
         Assert.NotNull(result);
         Assert.Single(result!);
@@ -55,12 +55,12 @@ public class SnippetContentTests
     {
         string encrypted = CryptoService.Encrypt(PlainJson(("Secret", "x")), "1234");
 
-        Assert.Null(SnippetManager.TryDeserializeSnippets(encrypted, null));
+        Assert.Null(SnippetManager.TryDeserializeSnippets(encrypted, default));
     }
 
     [Fact]
     public void TryDeserialize_GarbageContent_ReturnsNull()
     {
-        Assert.Null(SnippetManager.TryDeserializeSnippets("not json at all", null));
+        Assert.Null(SnippetManager.TryDeserializeSnippets("not json at all", default));
     }
 }

@@ -17,7 +17,7 @@ namespace TypeIt4Me.Services
     {
         private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);
-        private string? _currentPin = ""; // Store PIN in memory for crypto operations
+        private char[]? _currentPin; // Store PIN in memory (mutable char[] so it can be cleared)
 
         public BulkObservableCollection<Snippet> Snippets { get; private set; } = new BulkObservableCollection<Snippet>();
 
@@ -28,7 +28,12 @@ namespace TypeIt4Me.Services
 
         public void SetPin(string pin)
         {
-            _currentPin = pin;
+            // Zero the previous PIN before replacing it so it doesn't linger in memory.
+            if (_currentPin != null)
+            {
+                Array.Clear(_currentPin, 0, _currentPin.Length);
+            }
+            _currentPin = string.IsNullOrEmpty(pin) ? null : pin.ToCharArray();
         }
 
         private string GetFilePath()
@@ -43,13 +48,13 @@ namespace TypeIt4Me.Services
         /// deserialization exception. Returns null when the content cannot be read with the
         /// supplied <paramref name="pin"/>. Pure and side-effect-free for testability.
         /// </summary>
-        public static List<Snippet>? TryDeserializeSnippets(string content, string? pin)
+        public static List<Snippet>? TryDeserializeSnippets(string content, ReadOnlySpan<char> pin)
         {
             if (string.IsNullOrEmpty(content)) return null;
 
             if (content.StartsWith("V3|"))
             {
-                if (string.IsNullOrEmpty(pin)) return null;
+                if (pin.IsEmpty) return null;
                 try
                 {
                     string decrypted = CryptoService.Decrypt(content, pin);
@@ -119,7 +124,7 @@ namespace TypeIt4Me.Services
 
                 string json = JsonSerializer.Serialize(Snippets);
 
-                if (!string.IsNullOrEmpty(_currentPin))
+                if (_currentPin != null && _currentPin.Length > 0)
                 {
                     // Encrypt with V3 (AES-256 + HMAC)
                     string encrypted = await Task.Run(() => CryptoService.Encrypt(json, _currentPin));
@@ -166,7 +171,7 @@ namespace TypeIt4Me.Services
                  await _fileLock.WaitAsync();
                  string json = JsonSerializer.Serialize(Snippets);
                  
-                 if (!string.IsNullOrEmpty(_currentPin))
+                 if (_currentPin != null && _currentPin.Length > 0)
                  {
                      string encrypted = CryptoService.Encrypt(json, _currentPin);
                      await File.WriteAllTextAsync(filePath, encrypted);
@@ -192,7 +197,7 @@ namespace TypeIt4Me.Services
                 // back to the active session PIN. Detection is prefix-based (see
                 // TryDeserializeSnippets) and runs off the UI thread.
                 List<Snippet>? loaded = await Task.Run(() => TryDeserializeSnippets(content, importPin));
-                if (loaded == null && !string.IsNullOrEmpty(_currentPin) && _currentPin != importPin)
+                if (loaded == null && _currentPin != null && _currentPin.Length > 0)
                 {
                     loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
                 }
