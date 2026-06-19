@@ -1,8 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
-
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using TypeIt4Me.Models;
@@ -158,30 +159,68 @@ namespace TypeIt4Me.ViewModels
              DebounceSearch();
         }
 
-        private System.Threading.CancellationTokenSource? _searchCts;
+        private CancellationTokenSource? _searchCts;
+
+        private void CancelPendingSearch()
+        {
+            var cts = Interlocked.Exchange(ref _searchCts, null);
+            if (cts != null)
+            {
+                try { cts.Cancel(); } catch { }
+                cts.Dispose();
+            }
+        }
 
         private async void DebounceSearch()
         {
+            var newCts = new CancellationTokenSource();
+            var oldCts = Interlocked.Exchange(ref _searchCts, newCts);
+            if (oldCts != null)
+            {
+                try { oldCts.Cancel(); } catch { }
+                oldCts.Dispose();
+            }
+
+            var token = newCts.Token;
+
             try
             {
-                // Properly dispose previous CancellationTokenSource
-                _searchCts?.Cancel();
-                _searchCts?.Dispose();
-
-                _searchCts = new System.Threading.CancellationTokenSource();
-                var token = _searchCts.Token;
-
                 await Task.Delay(300, token); // 300ms delay
+
+                string filter = SearchText;
+                var source = _snippetManager.Snippets.ToList();
+
+                var results = await Task.Run(() => PerformFiltering(filter, source), token);
 
                 if (!token.IsCancellationRequested)
                 {
-                    RefreshSnippets();
+                    FilteredSnippets.ReplaceAll(results);
                 }
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 // Ignore - this is expected when search is cancelled
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Search error: {ex.Message}");
+            }
+            finally
+            {
+                Interlocked.CompareExchange(ref _searchCts, null, newCts);
+                newCts.Dispose();
+            }
+        }
+
+        private IEnumerable<Snippet> PerformFiltering(string filter, IEnumerable<Snippet> source)
+        {
+            var query = source.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                query = query.Where(s => s.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                                         (s.Category != null && s.Category.Contains(filter, StringComparison.OrdinalIgnoreCase)));
+            }
+            return query.ToList();
         }
 
         private void Snippets_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -191,16 +230,9 @@ namespace TypeIt4Me.ViewModels
 
         private void RefreshSnippets()
         {
-            var query = _snippetManager.Snippets.AsEnumerable();
+            CancelPendingSearch();
+            FilteredSnippets.ReplaceAll(PerformFiltering(SearchText, _snippetManager.Snippets));
 
-            if (!string.IsNullOrWhiteSpace(SearchText))
-            {
-                query = query.Where(s => s.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                                         (s.Category != null && s.Category.Contains(SearchText, StringComparison.OrdinalIgnoreCase)));
-            }
-
-            FilteredSnippets.ReplaceAll(query);
-            
             // Re-register hotkeys? 
             // In a real app we'd diff and update. For MVP, we can treat this separately or just register all on Load.
             // But HotkeyManager needs the Window Handle which we might not have immediately in VM constructor.
