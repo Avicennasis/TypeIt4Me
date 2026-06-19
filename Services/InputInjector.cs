@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Buffers;
 
 namespace TypeIt4Me.Services
 {
     public class InputInjector
     {
+        private readonly IInputSender _inputSender;
+
         // Security: Maximum snippet content length to prevent DoS (100 KB)
         private const int MaxSnippetLength = 100 * 1024;
 
@@ -87,6 +87,13 @@ namespace TypeIt4Me.Services
         // Regex to match special commands like {TAB}, {ENTER}, {SLEEP 1500}, etc.
         private static readonly Regex CommandPattern = new Regex(@"\{([^}]+)\}", RegexOptions.Compiled);
 
+        public InputInjector() : this(new WindowsInputSender()) { }
+
+        public InputInjector(IInputSender inputSender)
+        {
+            _inputSender = inputSender;
+        }
+
         public async Task TypeTextAsync(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -100,10 +107,10 @@ namespace TypeIt4Me.Services
 
             // 1. Release modifiers potentially held down by the user (Win, Alt, Ctrl, Shift)
             // This prevents "stuck key" behavior when firing hotkeys.
-            ReleaseModifiers();
+            _inputSender.ReleaseModifiers();
 
             // Small delay to ensure target window is ready/focused and modifiers registered as up
-            await Task.Delay(ModifierReleaseDelayMs);
+            await _inputSender.DelayAsync(ModifierReleaseDelayMs);
 
             // 2. Parse and process the text, handling special commands
             await ProcessTextWithCommands(text);
@@ -154,7 +161,7 @@ namespace TypeIt4Me.Services
                 {
                     // Clamp to reasonable range (1ms to 60 seconds)
                     milliseconds = Math.Max(1, Math.Min(milliseconds, 60000));
-                    await Task.Delay(milliseconds);
+                    await _inputSender.DelayAsync(milliseconds);
                 }
                 return;
             }
@@ -162,8 +169,8 @@ namespace TypeIt4Me.Services
             // Check if it's a known special key
             if (SpecialKeys.TryGetValue(command, out ushort vkCode))
             {
-                SendVirtualKey(vkCode);
-                await Task.Delay(KeyPressDelayMs); // Small delay after special key
+                _inputSender.SendVirtualKey(vkCode);
+                await _inputSender.DelayAsync(KeyPressDelayMs); // Small delay after special key
             }
             // If not recognized, type it literally including the braces
             else
@@ -181,182 +188,8 @@ namespace TypeIt4Me.Services
             for (int i = 0; i < text.Length; i += BatchSize)
             {
                 string batch = text.Substring(i, Math.Min(BatchSize, text.Length - i));
-                SendInputBatch(batch);
-                await Task.Delay(BatchDelayMs);
-            }
-        }
-
-        private void ReleaseModifiers()
-        {
-            var keys = new[]
-            {
-                (ushort)0x5B, // Left Win
-                (ushort)0x5C, // Right Win
-                (ushort)0x10, // Shift
-                (ushort)0x11, // Ctrl
-                (ushort)0x12  // Alt
-            };
-
-            var inputs = new NativeMethods.INPUT[keys.Length];
-            for(int i = 0; i < keys.Length; i++)
-            {
-               // We don't check state; just spam KeyUp. It's safe and robust.
-               inputs[i] = new NativeMethods.INPUT
-               {
-                   type = NativeMethods.INPUT_KEYBOARD,
-                   U = new NativeMethods.InputUnion
-                   {
-                       ki = new NativeMethods.KEYBDINPUT
-                       {
-                           wVk = keys[i],
-                           dwFlags = NativeMethods.KEYEVENTF_KEYUP,
-                           time = 0,
-                           dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                       }
-                   }
-               };
-            }
-            NativeMethods.SendInput((uint)inputs.Length, inputs, NativeMethods.INPUT.Size);
-        }
-
-        /// <summary>
-        /// Sends a single virtual key press (down + up)
-        /// </summary>
-        private void SendVirtualKey(ushort vkCode)
-        {
-            var inputs = new NativeMethods.INPUT[2];
-
-            // Key Down
-            inputs[0] = new NativeMethods.INPUT
-            {
-                type = NativeMethods.INPUT_KEYBOARD,
-                U = new NativeMethods.InputUnion
-                {
-                    ki = new NativeMethods.KEYBDINPUT
-                    {
-                        wVk = vkCode,
-                        dwFlags = 0,
-                        time = 0,
-                        dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                    }
-                }
-            };
-
-            // Key Up
-            inputs[1] = new NativeMethods.INPUT
-            {
-                type = NativeMethods.INPUT_KEYBOARD,
-                U = new NativeMethods.InputUnion
-                {
-                    ki = new NativeMethods.KEYBDINPUT
-                    {
-                        wVk = vkCode,
-                        dwFlags = NativeMethods.KEYEVENTF_KEYUP,
-                        time = 0,
-                        dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                    }
-                }
-            };
-
-            NativeMethods.SendInput(2, inputs, NativeMethods.INPUT.Size);
-        }
-
-        private void SendInputBatch(string text)
-        {
-            var pool = ArrayPool<NativeMethods.INPUT>.Shared;
-            var inputs = pool.Rent(text.Length * 2);
-
-            try
-            {
-                int count = 0;
-
-                foreach (char c in text)
-                {
-                    // Handle newline characters specially - send as Enter key press
-                    // Many apps don't interpret Unicode \r or \n as line breaks, but VK_RETURN works universally
-                    if (c == '\r')
-                    {
-                        // Skip carriage return - we'll handle it with \n to avoid double line breaks
-                        // Windows text typically uses \r\n, so we only act on \n
-                        continue;
-                    }
-
-                    if (c == '\n')
-                    {
-                        // Send Enter key (VK_RETURN = 0x0D) as a virtual key press
-                        inputs[count++] = new NativeMethods.INPUT
-                        {
-                            type = NativeMethods.INPUT_KEYBOARD,
-                            U = new NativeMethods.InputUnion
-                            {
-                                ki = new NativeMethods.KEYBDINPUT
-                                {
-                                    wVk = 0x0D, // VK_RETURN
-                                    dwFlags = 0,
-                                    time = 0,
-                                    dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                                }
-                            }
-                        };
-
-                        inputs[count++] = new NativeMethods.INPUT
-                        {
-                            type = NativeMethods.INPUT_KEYBOARD,
-                            U = new NativeMethods.InputUnion
-                            {
-                                ki = new NativeMethods.KEYBDINPUT
-                                {
-                                    wVk = 0x0D, // VK_RETURN
-                                    dwFlags = NativeMethods.KEYEVENTF_KEYUP,
-                                    time = 0,
-                                    dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                                }
-                            }
-                        };
-                        continue;
-                    }
-
-                    // Key Down (Unicode character)
-                    inputs[count++] = new NativeMethods.INPUT
-                    {
-                        type = NativeMethods.INPUT_KEYBOARD,
-                        U = new NativeMethods.InputUnion
-                        {
-                            ki = new NativeMethods.KEYBDINPUT
-                            {
-                                wScan = c,
-                                dwFlags = NativeMethods.KEYEVENTF_UNICODE,
-                                time = 0,
-                                dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                            }
-                        }
-                    };
-
-                    // Key Up
-                    inputs[count++] = new NativeMethods.INPUT
-                    {
-                        type = NativeMethods.INPUT_KEYBOARD,
-                        U = new NativeMethods.InputUnion
-                        {
-                            ki = new NativeMethods.KEYBDINPUT
-                            {
-                                wScan = c,
-                                dwFlags = NativeMethods.KEYEVENTF_UNICODE | NativeMethods.KEYEVENTF_KEYUP,
-                                time = 0,
-                                dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                            }
-                        }
-                    };
-                }
-
-                if (count > 0)
-                {
-                    NativeMethods.SendInput((uint)count, inputs, NativeMethods.INPUT.Size);
-                }
-            }
-            finally
-            {
-                pool.Return(inputs);
+                _inputSender.SendInputBatch(batch);
+                await _inputSender.DelayAsync(BatchDelayMs);
             }
         }
     }
