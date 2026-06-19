@@ -36,6 +36,46 @@ namespace TypeIt4Me.Services
             return Constants.GetAppDataPath(Constants.SnippetsFileName);
         }
 
+        /// <summary>
+        /// Deserializes snippet file content, transparently handling both plain JSON and
+        /// V3-encrypted payloads. Encryption is detected by the "V3|" prefix that
+        /// <see cref="CryptoService.Encrypt"/> always writes, rather than by catching a
+        /// deserialization exception. Returns null when the content cannot be read with the
+        /// supplied <paramref name="pin"/>. Pure and side-effect-free for testability.
+        /// </summary>
+        public static List<Snippet>? TryDeserializeSnippets(string content, string? pin)
+        {
+            if (string.IsNullOrEmpty(content)) return null;
+
+            if (content.StartsWith("V3|"))
+            {
+                if (string.IsNullOrEmpty(pin)) return null;
+                try
+                {
+                    string decrypted = CryptoService.Decrypt(content, pin);
+                    if (!string.IsNullOrEmpty(decrypted))
+                    {
+                        return JsonSerializer.Deserialize<List<Snippet>>(decrypted);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Decrypt/deserialize of encrypted snippets failed: {ex.Message}");
+                }
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<Snippet>>(content);
+            }
+            catch (JsonException ex)
+            {
+                Debug.WriteLine($"Plain-text snippet deserialization failed: {ex.Message}");
+                return null;
+            }
+        }
+
         public async Task LoadSnippetsAsync()
         {
             string path = GetFilePath();
@@ -47,27 +87,9 @@ namespace TypeIt4Me.Services
                 try
                 {
                     string content = await File.ReadAllTextAsync(path);
-                    
-                    // Try to deserialize as plain text first (migration path or no PIN)
-                    // If it fails, try decrypting if we have a PIN.
-                    
-                    List<Snippet>? loaded = null;
-                    try 
-                    {
-                         loaded = JsonSerializer.Deserialize<List<Snippet>>(content);
-                    }
-                    catch
-                    {
-                        // Not plain text JSON. Try decrypting.
-                        if (!string.IsNullOrEmpty(_currentPin))
-                        {
-                            string decrypted = await Task.Run(() => CryptoService.Decrypt(content, _currentPin));
-                            if (!string.IsNullOrEmpty(decrypted))
-                            {
-                                loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
-                            }
-                        }
-                    }
+
+                    // Detect plain vs V3-encrypted by prefix and deserialize off the UI thread.
+                    var loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
 
                     if (loaded != null)
                     {
@@ -165,50 +187,14 @@ namespace TypeIt4Me.Services
             try
             {
                 string content = await File.ReadAllTextAsync(filePath);
-                List<Snippet>? loaded = null;
-                
-                 try 
+
+                // Plain JSON, or V3-encrypted: try the supplied import PIN first, then fall
+                // back to the active session PIN. Detection is prefix-based (see
+                // TryDeserializeSnippets) and runs off the UI thread.
+                List<Snippet>? loaded = await Task.Run(() => TryDeserializeSnippets(content, importPin));
+                if (loaded == null && !string.IsNullOrEmpty(_currentPin) && _currentPin != importPin)
                 {
-                     // Try plain text first
-                     loaded = JsonSerializer.Deserialize<List<Snippet>>(content);
-                }
-                catch
-                {
-                    // Decrypt logic
-                    // 1. Try provided importPin if any
-                    // 2. Try _currentPin (active session PIN)
-                    
-                    if (!string.IsNullOrEmpty(importPin))
-                    {
-                         string decrypted = await Task.Run(() => CryptoService.Decrypt(content, importPin));
-                         if (!string.IsNullOrEmpty(decrypted))
-                         {
-                             try
-                             {
-                                 loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
-                             }
-                             catch (Exception ex)
-                             {
-                                 Debug.WriteLine($"Error deserializing imported snippets with provided PIN: {ex.Message}");
-                             }
-                         }
-                    }
-                    
-                    if (loaded == null && !string.IsNullOrEmpty(_currentPin))
-                    {
-                        string decrypted = await Task.Run(() => CryptoService.Decrypt(content, _currentPin));
-                        if (!string.IsNullOrEmpty(decrypted))
-                        {
-                             try
-                             {
-                                 loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
-                             }
-                             catch (Exception ex)
-                             {
-                                 Debug.WriteLine($"Error deserializing imported snippets with session PIN: {ex.Message}");
-                             }
-                        }
-                    }
+                    loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
                 }
 
                 if (loaded != null)
