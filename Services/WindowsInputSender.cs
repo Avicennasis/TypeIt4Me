@@ -6,6 +6,15 @@ namespace TypeIt4Me.Services
 {
     public class WindowsInputSender : IInputSender
     {
+        private static readonly ushort[] ModifierKeys =
+        {
+            0x5B, // Left Win
+            0x5C, // Right Win
+            0x10, // Shift
+            0x11, // Ctrl
+            0x12  // Alt
+        };
+
         public Task DelayAsync(int milliseconds)
         {
             return Task.Delay(milliseconds);
@@ -13,18 +22,10 @@ namespace TypeIt4Me.Services
 
         public void ReleaseModifiers()
         {
-            var keys = new[]
+            Span<NativeMethods.INPUT> inputs = stackalloc NativeMethods.INPUT[ModifierKeys.Length];
+            for (int i = 0; i < ModifierKeys.Length; i++)
             {
-                (ushort)0x5B, // Left Win
-                (ushort)0x5C, // Right Win
-                (ushort)0x10, // Shift
-                (ushort)0x11, // Ctrl
-                (ushort)0x12  // Alt
-            };
-
-            var inputs = new NativeMethods.INPUT[keys.Length];
-            for (int i = 0; i < keys.Length; i++)
-            {
+                // We don't check state; just spam KeyUp. It's safe and robust.
                 inputs[i] = new NativeMethods.INPUT
                 {
                     type = NativeMethods.INPUT_KEYBOARD,
@@ -32,7 +33,7 @@ namespace TypeIt4Me.Services
                     {
                         ki = new NativeMethods.KEYBDINPUT
                         {
-                            wVk = keys[i],
+                            wVk = ModifierKeys[i],
                             dwFlags = NativeMethods.KEYEVENTF_KEYUP,
                             time = 0,
                             dwExtraInfo = NativeMethods.GetMessageExtraInfo()
@@ -40,12 +41,12 @@ namespace TypeIt4Me.Services
                     }
                 };
             }
-            NativeMethods.SendInput((uint)inputs.Length, inputs, NativeMethods.INPUT.Size);
+            NativeMethods.SendInput((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
         }
 
         public void SendVirtualKey(ushort vkCode)
         {
-            var inputs = new NativeMethods.INPUT[2];
+            Span<NativeMethods.INPUT> inputs = stackalloc NativeMethods.INPUT[2];
 
             // Key Down
             inputs[0] = new NativeMethods.INPUT
@@ -79,7 +80,7 @@ namespace TypeIt4Me.Services
                 }
             };
 
-            NativeMethods.SendInput(2, inputs, NativeMethods.INPUT.Size);
+            NativeMethods.SendInput((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
         }
 
         public void SendInputBatch(string text)

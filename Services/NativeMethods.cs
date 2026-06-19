@@ -8,6 +8,9 @@ namespace TypeIt4Me.Services
         [DllImport("user32.dll", SetLastError = true)]
         public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint SendInput(uint nInputs, ref INPUT pInputs, int cbSize);
+
         [DllImport("user32.dll")]
         public static extern IntPtr GetMessageExtraInfo();
 
