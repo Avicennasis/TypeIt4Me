@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -126,7 +127,10 @@ namespace TypeIt4Me.Services
                     {
                         File.Delete(tempPath);
                     }
-                    catch { /* Ignore cleanup failure */ }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to delete temporary file {tempPath}: {ex.Message}");
+                    }
                 }
 
                 _fileLock.Release();
@@ -179,7 +183,14 @@ namespace TypeIt4Me.Services
                          string decrypted = await Task.Run(() => CryptoService.Decrypt(content, importPin));
                          if (!string.IsNullOrEmpty(decrypted))
                          {
-                             try { loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted); } catch { }
+                             try
+                             {
+                                 loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
+                             }
+                             catch (Exception ex)
+                             {
+                                 Debug.WriteLine($"Error deserializing imported snippets with provided PIN: {ex.Message}");
+                             }
                          }
                     }
                     
@@ -188,7 +199,14 @@ namespace TypeIt4Me.Services
                         string decrypted = await Task.Run(() => CryptoService.Decrypt(content, _currentPin));
                         if (!string.IsNullOrEmpty(decrypted))
                         {
-                             try { loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted); } catch { }
+                             try
+                             {
+                                 loaded = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
+                             }
+                             catch (Exception ex)
+                             {
+                                 Debug.WriteLine($"Error deserializing imported snippets with session PIN: {ex.Message}");
+                             }
                         }
                     }
                 }
