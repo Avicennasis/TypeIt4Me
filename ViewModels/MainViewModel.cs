@@ -13,13 +13,13 @@ namespace TypeIt4Me.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
-        private readonly SnippetManager _snippetManager;
-        private readonly HotkeyManager _hotkeyManager;
-        private readonly InputInjector _inputInjector;
-        private readonly FocusTracker _focusTracker;
-        private readonly SettingsManager _settingsManager;
-        private readonly AutoLockService _autoLockService;
-        private readonly ThemeService _themeService;
+        private readonly ISnippetManager _snippetManager;
+        private readonly IHotkeyManager _hotkeyManager;
+        private readonly IInputInjector _inputInjector;
+        private readonly IFocusTracker _focusTracker;
+        private readonly ISettingsManager _settingsManager;
+        private readonly IAutoLockService _autoLockService;
+        private readonly IThemeService _themeService;
 
         [ObservableProperty]
         private string _searchText = string.Empty;
@@ -82,9 +82,9 @@ namespace TypeIt4Me.ViewModels
 
         public BulkObservableCollection<Snippet> FilteredSnippets { get; } = new BulkObservableCollection<Snippet>();
 
-        public MainViewModel(SnippetManager snippetManager, HotkeyManager hotkeyManager, InputInjector inputInjector, 
-                             FocusTracker focusTracker, SettingsManager settingsManager, 
-                             AutoLockService autoLockService, ThemeService themeService)
+        public MainViewModel(ISnippetManager snippetManager, IHotkeyManager hotkeyManager, IInputInjector inputInjector, 
+                             IFocusTracker focusTracker, ISettingsManager settingsManager, 
+                             IAutoLockService autoLockService, IThemeService themeService)
         {
             _snippetManager = snippetManager;
             _hotkeyManager = hotkeyManager;

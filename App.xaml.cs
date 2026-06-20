@@ -10,13 +10,13 @@ namespace TypeIt4Me
     public partial class App : Application
     {
         private ILogger? _logger;
-        private SnippetManager? _snippetManager;
-        private HotkeyManager? _hotkeyManager;
-        private InputInjector? _inputInjector;
-        private FocusTracker? _focusTracker;
-        private SettingsManager? _settingsManager;
-        private AutoLockService? _autoLockService;
-        private ThemeService? _themeService;
+        private ISnippetManager? _snippetManager;
+        private IHotkeyManager? _hotkeyManager;
+        private IInputInjector? _inputInjector;
+        private IFocusTracker? _focusTracker;
+        private ISettingsManager? _settingsManager;
+        private IAutoLockService? _autoLockService;
+        private IThemeService? _themeService;
 
         private MainViewModel? _mainViewModel;
         private MainWindow? _mainWindow;

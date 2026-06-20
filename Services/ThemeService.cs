@@ -3,7 +3,7 @@ using System.Windows;
 
 namespace TypeIt4Me.Services
 {
-    public class ThemeService
+    public class ThemeService : IThemeService
     {
         public void SetTheme(bool isDark)
         {

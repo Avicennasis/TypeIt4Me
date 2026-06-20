@@ -13,7 +13,7 @@ namespace TypeIt4Me.Services
     /// Manages the collection of snippets, including loading, saving, and thread-safe access.
     /// Handles encryption if a PIN is provided.
     /// </summary>
-    public class SnippetManager
+    public class SnippetManager : ISnippetManager
     {
         private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);

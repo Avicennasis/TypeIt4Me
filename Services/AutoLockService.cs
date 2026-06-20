@@ -3,15 +3,15 @@ using System.Windows.Threading;
 
 namespace TypeIt4Me.Services
 {
-    public class AutoLockService : IDisposable
+    public class AutoLockService : IDisposable, IAutoLockService
     {
         private readonly DispatcherTimer _timer;
         private DateTime _lastActivity;
-        private readonly SettingsManager _settingsManager;
+        private readonly ISettingsManager _settingsManager;
 
         public event Action OnLockTriggered;
 
-        public AutoLockService(SettingsManager settingsManager)
+        public AutoLockService(ISettingsManager settingsManager)
         {
             _settingsManager = settingsManager;
             _timer = new DispatcherTimer();
