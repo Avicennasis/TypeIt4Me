@@ -6,7 +6,7 @@ using System.Windows.Interop;
 
 namespace TypeIt4Me.Services
 {
-    public class HotkeyManager : IDisposable
+    public class HotkeyManager : IDisposable, IHotkeyManager
     {
         private IntPtr _windowHandle;
         private HwndSource _source;

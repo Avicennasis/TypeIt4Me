@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace TypeIt4Me.Services
 {
-    public class InputInjector
+    public class InputInjector : IInputInjector
     {
         private readonly IInputSender _inputSender;
 

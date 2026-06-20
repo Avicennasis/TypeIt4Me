@@ -6,7 +6,7 @@ using TypeIt4Me.Models;
 
 namespace TypeIt4Me.Services
 {
-    public class SettingsManager
+    public class SettingsManager : ISettingsManager
     {
         private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);

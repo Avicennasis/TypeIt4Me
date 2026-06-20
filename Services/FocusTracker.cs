@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace TypeIt4Me.Services
 {
-    public class FocusTracker : IDisposable
+    public class FocusTracker : IDisposable, IFocusTracker
     {
         private CancellationTokenSource _cts;
         private IntPtr _myWindowHandle;
