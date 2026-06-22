@@ -259,38 +259,17 @@ namespace TypeIt4Me
                     else
                     {
                         _snippetManager.SaveSnippetsAsync();
-                        // For MVP: Simplest way to update hotkeys is to re-register everything or just this one.
-                        // Since we don't track IDs easily yet, let's just unregister all and re-register all.
-                        // Efficient? No. Reliable? Yes.
-                        ReloadHotkeys();
+                        _hotkeyManager?.UnregisterBySnippetId(vm.CurrentSnippet.Id);
+                        if (!RegisterSnippetHotkey(vm.CurrentSnippet))
+                        {
+                            MessageBox.Show("Failed to register hotkey for this snippet. Key combination may be in use.", "Hotkey Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
                     }
                 }
                 win.Close();
             };
 
             win.ShowDialog();
-        }
-
-        private void ReloadHotkeys()
-        {
-            if (_hotkeyManager == null || _snippetManager == null) return;
-
-            _hotkeyManager.ClearRegistrations();
-
-            var failedSnippets = new System.Collections.Generic.List<string>();
-            foreach (var snippet in _snippetManager.Snippets)
-            {
-                if (!RegisterSnippetHotkey(snippet))
-                {
-                     failedSnippets.Add(snippet.Name);
-                }
-            }
-
-            // Only warn if this was a manual reload or bulk op; for individual add, we handle separately
-            if (failedSnippets.Count > 0)
-            {
-                 MessageBox.Show($"Failed to register {failedSnippets.Count} hotkeys.", "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
         }
 
         private bool RegisterSnippetHotkey(Models.Snippet snippet)
