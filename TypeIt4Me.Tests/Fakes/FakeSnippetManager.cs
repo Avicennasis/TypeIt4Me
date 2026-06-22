@@ -8,6 +8,8 @@ namespace TypeIt4Me.Tests.Fakes
 {
     public class FakeSnippetManager : ISnippetManager
     {
+        public bool SaveSnippetsCalled { get; private set; } = false;
+
         public BulkObservableCollection<Snippet> Snippets { get; } = new BulkObservableCollection<Snippet>();
         public List<string> SetPinLog { get; } = new List<string>();
 
@@ -16,7 +18,12 @@ namespace TypeIt4Me.Tests.Fakes
             SetPinLog.Add(pin);
         }
 
-        public Task SaveSnippetsAsync() => Task.CompletedTask;
+        public Task SaveSnippetsAsync()
+        {
+            SaveSnippetsCalled = true;
+            return Task.CompletedTask;
+        }
+
         public Task LoadSnippetsAsync() => Task.CompletedTask;
 
         public void AddSnippet(Snippet snippet)

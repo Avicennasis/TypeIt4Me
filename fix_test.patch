@@ -1,0 +1,19 @@
+--- TypeIt4Me.Tests/MainViewModelTests.cs
++++ TypeIt4Me.Tests/MainViewModelTests.cs
+@@ -218,8 +218,8 @@
+             viewModel.SearchText = "Banana";
+
+-            // Allow task continuation
+-            Task.Delay(100).Wait(); // The debounce uses Task.Delay, need to wait for it.
++            // Allow task continuation for debounce (300ms)
++            await Task.Delay(400);
+
+             // Assert
+-            // Depending on debounce implementation, we might need a longer wait or a different way to test.
+-            // Let's assume FilteredSnippets is eventually updated.
+             Assert.Equal("Banana", viewModel.SearchText);
++            Assert.Single(viewModel.FilteredSnippets);
++            Assert.Equal("Banana", viewModel.FilteredSnippets[0].Name);
+         }
+     }
+ }
