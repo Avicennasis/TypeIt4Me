@@ -30,7 +30,7 @@ namespace TypeIt4Me
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
             // Security: Show generic error to user, log detailed info to file only
-            string userMessage = $"An unexpected error occurred: {e.Exception.Message}\n\nPlease check the error log for details.";
+            string userMessage = $"An unexpected error occurred: {e.Exception.Message}\n\nPlease check the {Constants.LogFileName} file for details.";
 
             e.Handled = true; // Prevent crash if possible
 

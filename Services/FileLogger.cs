@@ -10,7 +10,7 @@ namespace TypeIt4Me.Services
 
         public FileLogger()
         {
-            _logPath = Constants.GetAppDataPath("error.log");
+            _logPath = Constants.GetAppDataPath(Constants.LogFileName);
         }
 
         public void LogInfo(string message)

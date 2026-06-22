@@ -8,6 +8,7 @@ namespace TypeIt4Me.Services
         public const string AppName = "TypeIt4Me";
         public const string SnippetsFileName = "snippets.json";
         public const string SettingsFileName = "settings.json";
+        public const string LogFileName = "error.log";
 
         public static string GetAppDataPath(string fileName)
         {
