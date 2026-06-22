@@ -18,12 +18,14 @@ namespace TypeIt4Me.Services
         private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);
         private char[]? _currentPin; // Store PIN in memory (mutable char[] so it can be cleared)
+        private readonly string? _filePathOverride;
 
         public BulkObservableCollection<Snippet> Snippets { get; private set; } = new BulkObservableCollection<Snippet>();
 
-        public SnippetManager(ILogger logger)
+        public SnippetManager(ILogger logger, string? filePathOverride = null)
         {
             _logger = logger;
+            _filePathOverride = filePathOverride;
         }
 
         public void SetPin(string pin)
@@ -38,7 +40,7 @@ namespace TypeIt4Me.Services
 
         private string GetFilePath()
         {
-            return Constants.GetAppDataPath(Constants.SnippetsFileName);
+            return _filePathOverride ?? Constants.GetAppDataPath(Constants.SnippetsFileName);
         }
 
         /// <summary>
