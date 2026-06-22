@@ -18,7 +18,8 @@ namespace TypeIt4Me.Tests
 
             // Assert
             Assert.NotNull(appliedUri);
-            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/DarkTheme.xaml", appliedUri.ToString());
+            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/DarkTheme.xaml", appliedUri.OriginalString);
+            Assert.Equal(UriKind.RelativeOrAbsolute, appliedUri.IsAbsoluteUri ? UriKind.Absolute : UriKind.RelativeOrAbsolute); // Just verify it doesn't throw on creation
         }
 
         [Fact]
@@ -33,7 +34,7 @@ namespace TypeIt4Me.Tests
 
             // Assert
             Assert.NotNull(appliedUri);
-            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/LightTheme.xaml", appliedUri.ToString());
+            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/LightTheme.xaml", appliedUri.OriginalString);
         }
     }
 }

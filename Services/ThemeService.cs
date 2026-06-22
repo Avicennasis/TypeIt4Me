@@ -26,7 +26,7 @@ namespace TypeIt4Me.Services
                 "pack://application:,,,/TypeIt4Me;component/Views/DarkTheme.xaml" :
                 "pack://application:,,,/TypeIt4Me;component/Views/LightTheme.xaml";
 
-            _applyThemeAction(new Uri(uriPath));
+            _applyThemeAction(new Uri(uriPath, UriKind.RelativeOrAbsolute));
         }
 
         private void ApplyThemeToApplication(Uri themeUri)
