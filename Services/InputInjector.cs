@@ -187,8 +187,8 @@ namespace TypeIt4Me.Services
             const int BatchSize = 50;
             for (int i = 0; i < text.Length; i += BatchSize)
             {
-                string batch = text.Substring(i, Math.Min(BatchSize, text.Length - i));
-                _inputSender.SendInputBatch(batch);
+                int length = Math.Min(BatchSize, text.Length - i);
+                _inputSender.SendInputBatch(text.AsSpan(i, length));
                 await _inputSender.DelayAsync(BatchDelayMs);
             }
         }

@@ -83,7 +83,7 @@ namespace TypeIt4Me.Services
             NativeMethods.SendInput((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
         }
 
-        public void SendInputBatch(string text)
+        public void SendInputBatch(System.ReadOnlySpan<char> text)
         {
             var pool = ArrayPool<NativeMethods.INPUT>.Shared;
             var inputs = pool.Rent(text.Length * 2);

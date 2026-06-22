@@ -219,7 +219,7 @@ namespace TypeIt4Me.Performance
         [Benchmark]
         public void Optimized_SendInputBatch()
         {
-            SendInputBatch_Optimized(_mediumText);
+            SendInputBatch_Optimized(_mediumText.AsSpan());
         }
 
         [Benchmark]
@@ -258,7 +258,7 @@ namespace TypeIt4Me.Performance
             NativeMethods.SendInput((uint)inputs.Length, inputs, NativeMethods.INPUT.Size);
         }
 
-        private void SendInputBatch_Optimized(string text)
+        private void SendInputBatch_Optimized(ReadOnlySpan<char> text)
         {
             // Optimization: Use ArrayPool
             var pool = ArrayPool<NativeMethods.INPUT>.Shared;

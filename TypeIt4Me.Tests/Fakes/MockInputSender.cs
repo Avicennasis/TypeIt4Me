@@ -21,9 +21,9 @@ namespace TypeIt4Me.Tests.Fakes
             Log.Add("RELEASE_MODIFIERS");
         }
 
-        public void SendInputBatch(string text)
+        public void SendInputBatch(System.ReadOnlySpan<char> text)
         {
-            Log.Add($"SEND_BATCH:{text}");
+            Log.Add($"SEND_BATCH:{text.ToString()}");
         }
 
         public void SendVirtualKey(ushort vkCode)
