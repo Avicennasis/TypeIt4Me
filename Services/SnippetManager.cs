@@ -91,10 +91,31 @@ namespace TypeIt4Me.Services
                 await _fileLock.WaitAsync();
                 try
                 {
-                    string content = await File.ReadAllTextAsync(path);
+                    List<Snippet>? loaded = null;
+                    using (var stream = File.OpenRead(path))
+                    {
+                        var bytes = new byte[3];
+                        int read = await stream.ReadAsync(bytes, 0, 3);
+                        stream.Position = 0;
 
-                    // Detect plain vs V3-encrypted by prefix and deserialize off the UI thread.
-                    var loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
+                        if (read == 3 && bytes[0] == 'V' && bytes[1] == '3' && bytes[2] == '|')
+                        {
+                            using var reader = new StreamReader(stream);
+                            string content = await reader.ReadToEndAsync();
+                            loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
+                        }
+                        else
+                        {
+                            try
+                            {
+                                loaded = await JsonSerializer.DeserializeAsync<List<Snippet>>(stream);
+                            }
+                            catch (JsonException ex)
+                            {
+                                Debug.WriteLine($"Plain-text snippet deserialization failed: {ex.Message}");
+                            }
+                        }
+                    }
 
                     if (loaded != null)
                     {
@@ -191,15 +212,35 @@ namespace TypeIt4Me.Services
         {
             try
             {
-                string content = await File.ReadAllTextAsync(filePath);
-
-                // Plain JSON, or V3-encrypted: try the supplied import PIN first, then fall
-                // back to the active session PIN. Detection is prefix-based (see
-                // TryDeserializeSnippets) and runs off the UI thread.
-                List<Snippet>? loaded = await Task.Run(() => TryDeserializeSnippets(content, importPin));
-                if (loaded == null && _currentPin != null && _currentPin.Length > 0)
+                List<Snippet>? loaded = null;
+                using (var stream = File.OpenRead(filePath))
                 {
-                    loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
+                    var bytes = new byte[3];
+                    int read = await stream.ReadAsync(bytes, 0, 3);
+                    stream.Position = 0;
+
+                    if (read == 3 && bytes[0] == 'V' && bytes[1] == '3' && bytes[2] == '|')
+                    {
+                        using var reader = new StreamReader(stream);
+                        string content = await reader.ReadToEndAsync();
+
+                        loaded = await Task.Run(() => TryDeserializeSnippets(content, importPin));
+                        if (loaded == null && _currentPin != null && _currentPin.Length > 0)
+                        {
+                            loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            loaded = await JsonSerializer.DeserializeAsync<List<Snippet>>(stream);
+                        }
+                        catch (JsonException ex)
+                        {
+                            Debug.WriteLine($"Plain-text snippet deserialization failed: {ex.Message}");
+                        }
+                    }
                 }
 
                 if (loaded != null)
