@@ -85,7 +85,7 @@ namespace TypeIt4Me.Services
         };
 
         // Regex to match special commands like {TAB}, {ENTER}, {SLEEP 1500}, etc.
-        private static readonly Regex CommandPattern = new Regex(@"\{([^}]+)\}", RegexOptions.Compiled);
+        private static readonly Regex CommandPattern = new Regex(@"\{([^}]+)\}", RegexOptions.Compiled, TimeSpan.FromMilliseconds(250));
 
         public InputInjector() : this(new WindowsInputSender()) { }
 
@@ -122,7 +122,18 @@ namespace TypeIt4Me.Services
         private async Task ProcessTextWithCommands(string text)
         {
             int lastIndex = 0;
-            var matches = CommandPattern.Matches(text);
+            MatchCollection matches;
+
+            try
+            {
+                matches = CommandPattern.Matches(text);
+                // Force evaluation to trigger potential timeout
+                _ = matches.Count;
+            }
+            catch (RegexMatchTimeoutException ex)
+            {
+                throw new ArgumentException("Snippet content contains overly complex command patterns that timed out during parsing.", ex);
+            }
 
             foreach (Match match in matches)
             {
