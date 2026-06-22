@@ -8,8 +8,8 @@ namespace TypeIt4Me.Performance
     [MemoryDiagnoser]
     public class LoggerBenchmark
     {
-        private string _logPath;
-        private string _content;
+        private string _logPath = string.Empty;
+        private string _content = string.Empty;
 
         [GlobalSetup]
         public void Setup()

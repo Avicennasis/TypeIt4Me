@@ -38,6 +38,6 @@ namespace TypeIt4Me.Tests.Fakes
 
         public Task ExportSnippetsAsync(string filePath) => Task.CompletedTask;
 
-        public Task<bool> ImportSnippetsAsync(string filePath, string pin = null) => Task.FromResult(true);
+        public Task<bool> ImportSnippetsAsync(string filePath, string? pin = null) => Task.FromResult(true);
     }
 }

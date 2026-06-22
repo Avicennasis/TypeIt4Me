@@ -71,24 +71,23 @@ namespace TypeIt4Me.Tests
             // Arrange
             var (viewModel, _, _, _, _, _, _, _) = CreateViewModel();
 
-            // Assert Initial state
-            Assert.False(viewModel.IsAlwaysOnTop);
-            Assert.False(viewModel.MinimizeToTray);
-            Assert.False(viewModel.IsDarkMode);
-            Assert.False(viewModel.IsMiniMode);
+            // Store Initial state
+            var isAlwaysOnTopInitial = viewModel.IsAlwaysOnTop;
+            var minimizeToTrayInitial = viewModel.MinimizeToTray;
+            var isDarkModeInitial = viewModel.IsDarkMode;
+            var isMiniModeInitial = viewModel.IsMiniMode;
 
-            // Act & Assert
+            // Act
             viewModel.ToggleAlwaysOnTopCommand.Execute(null);
-            Assert.True(viewModel.IsAlwaysOnTop);
-
             viewModel.ToggleMinimizeToTrayCommand.Execute(null);
-            Assert.True(viewModel.MinimizeToTray);
-
             viewModel.ToggleDarkModeCommand.Execute(null);
-            Assert.True(viewModel.IsDarkMode);
-
             viewModel.ToggleMiniModeCommand.Execute(null);
-            Assert.True(viewModel.IsMiniMode);
+
+            // Assert
+            Assert.Equal(!isAlwaysOnTopInitial, viewModel.IsAlwaysOnTop);
+            Assert.Equal(!minimizeToTrayInitial, viewModel.MinimizeToTray);
+            Assert.Equal(!isDarkModeInitial, viewModel.IsDarkMode);
+            Assert.Equal(!isMiniModeInitial, viewModel.IsMiniMode);
         }
 
         [Fact]

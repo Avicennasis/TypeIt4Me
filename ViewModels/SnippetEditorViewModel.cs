@@ -14,10 +14,10 @@ namespace TypeIt4Me.ViewModels
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
-        private string _content;
+        private string _content = string.Empty;
 
         [ObservableProperty]
-        private string _category;
+        private string _category = string.Empty;
 
         [ObservableProperty]
         private Key _triggerKey;

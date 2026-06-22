@@ -9,7 +9,7 @@ namespace TypeIt4Me.Services
         private DateTime _lastActivity;
         private readonly ISettingsManager _settingsManager;
 
-        public event Action OnLockTriggered;
+        public event Action? OnLockTriggered;
 
         public AutoLockService(ISettingsManager settingsManager)
         {

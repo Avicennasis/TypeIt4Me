@@ -9,7 +9,7 @@ namespace TypeIt4Me.Services
     public class HotkeyManager : IDisposable, IHotkeyManager
     {
         private IntPtr _windowHandle;
-        private HwndSource _source;
+        private HwndSource? _source;
         private int _currentId;
         private readonly Dictionary<int, Action> _callbacks = new Dictionary<int, Action>();
         private readonly Dictionary<Guid, int> _snippetMap = new Dictionary<Guid, int>();

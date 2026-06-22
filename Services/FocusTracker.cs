@@ -7,7 +7,7 @@ namespace TypeIt4Me.Services
 {
     public class FocusTracker : IDisposable, IFocusTracker
     {
-        private CancellationTokenSource _cts;
+        private CancellationTokenSource? _cts;
         private IntPtr _myWindowHandle;
         
         public IntPtr LastExternalWindowHandle { get; private set; }

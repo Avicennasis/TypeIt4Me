@@ -75,9 +75,9 @@ namespace TypeIt4Me.Performance
     [MemoryDiagnoser]
     public class InputInjectorBenchmark
     {
-        private string _shortText;
-        private string _mediumText;
-        private string _longText;
+        private string _shortText = string.Empty;
+        private string _mediumText = string.Empty;
+        private string _longText = string.Empty;
 
         [GlobalSetup]
         public void Setup()

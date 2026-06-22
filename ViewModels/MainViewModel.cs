@@ -150,7 +150,7 @@ namespace TypeIt4Me.ViewModels
              RequestWindowResize?.Invoke(value);
         }
 
-        public event Action<bool> RequestWindowResize;
+        public event Action<bool>? RequestWindowResize;
 
         partial void OnSearchTextChanged(string value)
         {
@@ -348,10 +348,10 @@ namespace TypeIt4Me.ViewModels
              MessageBox.Show("PIN Removed. Snippets are now stored in plain text.", "Security", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        public event Action RequestPinSet;
-        public event Action<Snippet> RequestSnippetEditor;
-        public event Action RequestUnlock; // Event to ask View/App to show PIN dialog
-        public event Action<bool> RequestLockState; // True = Lock (Hide window), False = Unlock (Show window logic)
+        public event Action? RequestPinSet;
+        public event Action<Snippet>? RequestSnippetEditor;
+        public event Action? RequestUnlock; // Event to ask View/App to show PIN dialog
+        public event Action<bool>? RequestLockState; // True = Lock (Hide window), False = Unlock (Show window logic)
 
         // Lock State
         private bool _isLocked = false;
@@ -398,7 +398,7 @@ namespace TypeIt4Me.ViewModels
              });
         }
         
-        public event Action<string, string, Action<string>> RequestInput;
+        public event Action<string, string, Action<string>>? RequestInput;
 
         [RelayCommand]
         private void ShowHelp()
@@ -409,7 +409,7 @@ namespace TypeIt4Me.ViewModels
              RequestShowHelp?.Invoke();
         }
         
-        public event Action RequestShowHelp;
+        public event Action? RequestShowHelp;
 
         public void LockApp()
         {
@@ -474,7 +474,7 @@ namespace TypeIt4Me.ViewModels
             }
         }
         
-        public event Action<Action<string>> RequestPinInput;
+        public event Action<Action<string>>? RequestPinInput;
 
         [RelayCommand]
         private void RestoreFromTray()
