@@ -26,10 +26,7 @@ namespace TypeIt4Me.Services
                 "pack://application:,,,/TypeIt4Me;component/Views/DarkTheme.xaml" :
                 "pack://application:,,,/TypeIt4Me;component/Views/LightTheme.xaml";
 
-            // pack URIs might throw on construction if the pack scheme isn't registered,
-            // which happens in pure unit test environments without WPF startup.
-            // Using RelativeOrAbsolute allows the Uri to be constructed safely.
-            _applyThemeAction(new Uri(uriPath, UriKind.RelativeOrAbsolute));
+            _applyThemeAction(new Uri(uriPath));
         }
 
         private void ApplyThemeToApplication(Uri themeUri)
