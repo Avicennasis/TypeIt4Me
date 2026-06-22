@@ -6,7 +6,7 @@ namespace TypeIt4Me.Services
     {
         Task DelayAsync(int milliseconds);
         void SendVirtualKey(ushort vkCode);
-        void SendInputBatch(string text);
+        void SendInputBatch(System.ReadOnlySpan<char> text);
         void ReleaseModifiers();
     }
 }
