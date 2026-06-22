@@ -21,6 +21,8 @@ namespace TypeIt4Me
         private MainViewModel? _mainViewModel;
         private MainWindow? _mainWindow;
 
+        private System.Threading.CancellationTokenSource? _reloadHotkeysCts;
+
         public App()
         {
             // Global Exception Handling
@@ -207,24 +209,38 @@ namespace TypeIt4Me
             _hotkeyManager?.Initialize(handle);
             _focusTracker?.Start(handle);
 
-            // Register existing hotkeys
+            // Register existing hotkeys asynchronously so it doesn't block UI
             if (_snippetManager != null && _hotkeyManager != null)
             {
-                var failedSnippets = new System.Collections.Generic.List<string>();
-                foreach (var snippet in _snippetManager.Snippets)
+                _ = Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
-                    if (!RegisterSnippetHotkey(snippet))
-                    {
-                        failedSnippets.Add(snippet.Name);
-                    }
-                }
+                    var failedSnippets = new System.Collections.Generic.List<string>();
 
-                if (failedSnippets.Count > 0)
-                {
-                    string msg = "Failed to register hotkeys for the following snippets (likely conflicts):\n\n" +
-                                 string.Join("\n", failedSnippets);
-                    MessageBox.Show(msg, "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+                    // Take a snapshot to avoid modifying the collection during iteration if it changes
+                    var snippets = System.Linq.Enumerable.ToArray(_snippetManager.Snippets);
+
+                    for (int i = 0; i < snippets.Length; i++)
+                    {
+                        var snippet = snippets[i];
+                        if (!RegisterSnippetHotkey(snippet))
+                        {
+                            failedSnippets.Add(snippet.Name);
+                        }
+
+                        // Yield every 50 snippets to keep UI responsive
+                        if (i > 0 && i % 50 == 0)
+                        {
+                            await System.Threading.Tasks.Task.Delay(1);
+                        }
+                    }
+
+                    if (failedSnippets.Count > 0)
+                    {
+                        string msg = "Failed to register hotkeys for the following snippets (likely conflicts):\n\n" +
+                                     string.Join("\n", failedSnippets);
+                        MessageBox.Show(msg, "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }, System.Windows.Threading.DispatcherPriority.Background);
             }
         }
 
@@ -275,22 +291,41 @@ namespace TypeIt4Me
         {
             if (_hotkeyManager == null || _snippetManager == null) return;
 
+            _reloadHotkeysCts?.Cancel();
+            _reloadHotkeysCts = new System.Threading.CancellationTokenSource();
+            var token = _reloadHotkeysCts.Token;
+
             _hotkeyManager.ClearRegistrations();
 
-            var failedSnippets = new System.Collections.Generic.List<string>();
-            foreach (var snippet in _snippetManager.Snippets)
+            _ = Application.Current.Dispatcher.InvokeAsync(async () =>
             {
-                if (!RegisterSnippetHotkey(snippet))
-                {
-                     failedSnippets.Add(snippet.Name);
-                }
-            }
+                var failedSnippets = new System.Collections.Generic.List<string>();
+                var snippets = System.Linq.Enumerable.ToArray(_snippetManager.Snippets);
 
-            // Only warn if this was a manual reload or bulk op; for individual add, we handle separately
-            if (failedSnippets.Count > 0)
-            {
-                 MessageBox.Show($"Failed to register {failedSnippets.Count} hotkeys.", "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+                for (int i = 0; i < snippets.Length; i++)
+                {
+                    if (token.IsCancellationRequested) return;
+
+                    var snippet = snippets[i];
+                    if (!RegisterSnippetHotkey(snippet))
+                    {
+                         failedSnippets.Add(snippet.Name);
+                    }
+
+                    if (i > 0 && i % 50 == 0)
+                    {
+                        await System.Threading.Tasks.Task.Delay(1, token).ContinueWith(t => { });
+                    }
+                }
+
+                if (token.IsCancellationRequested) return;
+
+                // Only warn if this was a manual reload or bulk op; for individual add, we handle separately
+                if (failedSnippets.Count > 0)
+                {
+                     MessageBox.Show($"Failed to register {failedSnippets.Count} hotkeys.", "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }, System.Windows.Threading.DispatcherPriority.Background);
         }
 
         private bool RegisterSnippetHotkey(Models.Snippet snippet)
