@@ -313,17 +313,14 @@ namespace TypeIt4Me
              return true; // No hotkey to register count as success
         }
 
-        private void MainViewModel_RequestPinInput(Action<string> callback)
+        private string? MainViewModel_RequestPinInput()
         {
             var pinWin = new PinEntryWindow("Enter PIN for Import");
             if (pinWin.ShowDialog() == true)
             {
-                callback(pinWin.Pin);
+                return pinWin.Pin;
             }
-            else
-            {
-                callback(string.Empty);
-            }
+            return null;
         }
 
         private void MainViewModel_RequestLockState(bool isLocked)
@@ -380,13 +377,14 @@ namespace TypeIt4Me
              }
         }
 
-        private void MainViewModel_RequestInput(string message, string defaultVal, Action<string> callback)
+        private string? MainViewModel_RequestInput(string message, string defaultVal)
         {
              var inputWin = new Views.InputWindow(message, defaultVal);
              if (inputWin.ShowDialog() == true)
              {
-                 callback(inputWin.Result);
+                 return inputWin.Result;
              }
+             return null;
         }
 
         private void MainViewModel_RequestShowHelp()

@@ -382,23 +382,14 @@ namespace TypeIt4Me.ViewModels
              // Since we have PinEntryWindow, we can make a lightweight InputWindow or just re-use InputBox pattern 
              // if we reference Microsoft.VisualBasic, OR implemented a simple "RequestInput" event.
              
-             RequestPinInput?.Invoke((result) => 
+             string? input = RequestInput?.Invoke("Enter Auto-Lock timeout in minutes:", AutoLockMinutes.ToString());
+             if (input != null && int.TryParse(input, out int result) && result >= 0)
              {
-                 // We re-use the RequestPinInput event mechanism but the View needs to know it's not a PIN...
-                 // Actually RequestPinInput shows "PinEntryWindow" which masks input. That's bad for "Minutes".
-                 // Let's create a specific Event for Generic Input.
-             });
-             
-             RequestInput?.Invoke("Enter Auto-Lock timeout in minutes:", AutoLockMinutes.ToString(), (input) =>
-             {
-                 if (int.TryParse(input, out int result) && result >= 0)
-                 {
-                     AutoLockMinutes = result;
-                 }
-             });
+                 AutoLockMinutes = result;
+             }
         }
         
-        public event Action<string, string, Action<string>> RequestInput;
+        public event Func<string, string, string?>? RequestInput;
 
         [RelayCommand]
         private void ShowHelp()
@@ -449,12 +440,7 @@ namespace TypeIt4Me.ViewModels
                          if (result == MessageBoxResult.No) break;
                          
                          // Request PIN from View
-                         // We can reuse RequestPinSet or create a new event.
-                         // Let's create a generic RequestPinInput event that returns a string (via args or callback).
-                         // Simplified: We'll misuse the SettingsManager flow or just add a direct callback action.
-                         
-                         string? inputPin = null;
-                         RequestPinInput?.Invoke((pin) => inputPin = pin);
+                         string? inputPin = RequestPinInput?.Invoke();
                          
                          if (!string.IsNullOrEmpty(inputPin))
                          {
@@ -474,7 +460,7 @@ namespace TypeIt4Me.ViewModels
             }
         }
         
-        public event Action<Action<string>> RequestPinInput;
+        public event Func<string?>? RequestPinInput;
 
         [RelayCommand]
         private void RestoreFromTray()
