@@ -445,7 +445,11 @@ namespace TypeIt4Me.ViewModels
                     {
                          // We need a simple input dialog. 
                          // Check status: failed? 
-                         var result = MessageBox.Show("Failed to decrypt snippets. Do you want to try entering a PIN?", "Import Failed", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                         var result = MessageBox.Show(
+                             "Failed to decrypt snippets. Do you want to try entering a PIN?",
+                             "Import Failed",
+                             MessageBoxButton.YesNo,
+                             MessageBoxImage.Question);
                          if (result == MessageBoxResult.No) break;
                          
                          // Request PIN from View
