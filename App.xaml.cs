@@ -104,7 +104,7 @@ namespace TypeIt4Me
                             {
                                 // Validate PIN using salted hash (V3 only)
                                 string hash = Services.CryptoService.HashPin(pinWin.Pin.AsSpan(), _settingsManager.Settings.PinSalt);
-                                if (hash == _settingsManager.Settings.PinHash)
+                                if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
                                 {
                                     unlocked = true;
                                     // Set PIN in Manager for Decryption
@@ -357,7 +357,7 @@ namespace TypeIt4Me
                      {
                          // Use Salted Check
                          string hash = Services.CryptoService.HashPin(pinWin.Pin.AsSpan(), _settingsManager.Settings.PinSalt);
-                         if (hash == _settingsManager.Settings.PinHash)
+                         if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
                          {
                              authenticated = true;
                              _mainViewModel.UnlockApp();
@@ -399,11 +399,28 @@ namespace TypeIt4Me
              helpWin.Show();
         }
 
+        private bool IsHashEqual(string? hash1, string? hash2)
+        {
+            if (hash1 == null || hash2 == null) return false;
+
+            try
+            {
+                byte[] bytes1 = Convert.FromBase64String(hash1);
+                byte[] bytes2 = Convert.FromBase64String(hash2);
+                return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(bytes1, bytes2);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+
         protected override void OnExit(ExitEventArgs e)
         {
             _hotkeyManager?.Dispose();
             _focusTracker?.Dispose();
             _autoLockService?.Dispose();
+            (_logger as IDisposable)?.Dispose();
             base.OnExit(e);
         }
     }
