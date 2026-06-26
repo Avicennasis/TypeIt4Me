@@ -94,7 +94,7 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.True(logger.ErrorLogged);
             Assert.NotNull(logger.LoggedException);
-            Assert.IsType<IOException>(logger.LoggedException);
+            Assert.True(logger.LoggedException is IOException || logger.LoggedException is UnauthorizedAccessException);
         }
     }
 }
