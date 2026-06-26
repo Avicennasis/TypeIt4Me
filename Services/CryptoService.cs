@@ -216,11 +216,7 @@ namespace TypeIt4Me.Services
                 }
 
                 // Constant-time comparison to prevent timing attacks
-                bool hmacValid = true;
-                for (int i = 0; i < HMACSize; i++)
-                {
-                    hmacValid &= (storedHmac[i] == computedHmac[i]);
-                }
+                bool hmacValid = CryptographicOperations.FixedTimeEquals(storedHmac, computedHmac);
 
                 if (!hmacValid)
                 {
