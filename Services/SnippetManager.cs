@@ -36,7 +36,7 @@ namespace TypeIt4Me.Services
             _currentPin = pin.IsEmpty ? null : pin.ToArray();
         }
 
-        private string GetFilePath()
+        protected virtual string GetFilePath()
         {
             return Constants.GetAppDataPath(Constants.SnippetsFileName);
         }
