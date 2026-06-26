@@ -400,6 +400,7 @@ namespace TypeIt4Me
             _hotkeyManager?.Dispose();
             _focusTracker?.Dispose();
             _autoLockService?.Dispose();
+            (_logger as IDisposable)?.Dispose();
             base.OnExit(e);
         }
     }

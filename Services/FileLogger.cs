@@ -1,16 +1,29 @@
 using System;
 using System.IO;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace TypeIt4Me.Services
 {
-    public class FileLogger : ILogger
+    public sealed class FileLogger : ILogger, IDisposable
     {
         private readonly string _logPath;
-        private readonly object _lock = new object();
+        private readonly Channel<string> _logChannel;
+        private readonly Task _backgroundTask;
 
         public FileLogger()
         {
             _logPath = Constants.GetAppDataPath("error.log");
+
+            // Use an unbounded channel to never block the caller.
+            // SingleReader is true because only one background task will write to the file.
+            _logChannel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false
+            });
+
+            _backgroundTask = Task.Run(ProcessLogQueueAsync);
         }
 
         public void LogInfo(string message)
@@ -35,15 +48,55 @@ namespace TypeIt4Me.Services
                 string logEntry = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{level}] {message}\n" +
                                  "--------------------------------------------------\n";
 
-                lock (_lock)
-                {
-                    File.AppendAllText(_logPath, logEntry);
-                }
+                // Enqueue the log entry instead of writing directly to the file.
+                // This avoids blocking the caller thread.
+                _logChannel.Writer.TryWrite(logEntry);
             }
             catch
             {
-                // Last resort: if logging fails, we can't do much.
-                // In a desktop app, we avoid crashing the app because logging failed.
+                // Last resort: if enqueueing fails, we don't crash.
+            }
+        }
+
+        private async Task ProcessLogQueueAsync()
+        {
+            try
+            {
+                await foreach (var logEntry in _logChannel.Reader.ReadAllAsync())
+                {
+                    try
+                    {
+                        // Note: Because this is running in a single reader background task,
+                        // we no longer need a lock for appending text.
+                        File.AppendAllText(_logPath, logEntry);
+                    }
+                    catch
+                    {
+                        // Ignore file system errors for individual entries
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore channel read cancellations
+            }
+            catch
+            {
+                // Ignore other background errors
+            }
+        }
+
+        public void Dispose()
+        {
+            // Complete the channel and wait briefly for the queue to flush
+            _logChannel.Writer.TryComplete();
+            try
+            {
+                _backgroundTask.Wait(TimeSpan.FromSeconds(2));
+            }
+            catch
+            {
+                // Ignore wait errors
             }
         }
     }
