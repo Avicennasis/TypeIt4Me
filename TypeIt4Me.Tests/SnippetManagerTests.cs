@@ -34,7 +34,11 @@ namespace TypeIt4Me.Tests
             // Arrange
             var logger = new MockLogger();
             var tcs = new TaskCompletionSource<bool>();
-            logger.ErrorLoggedCompletionSource = tcs;
+            logger.ErrorLogged += msg =>
+            {
+                if (msg == "Background save failed after AddSnippet")
+                    tcs.TrySetResult(true);
+            };
 
             var manager = new TestSnippetManager(logger);
             var snippet = new Snippet { Id = Guid.NewGuid(), Name = "Test", Content = "Test", Category = "Test" };
@@ -59,14 +63,15 @@ namespace TypeIt4Me.Tests
             // Arrange
             var logger = new MockLogger();
             var tcs = new TaskCompletionSource<bool>();
-            logger.ErrorLoggedCompletionSource = tcs;
+            logger.ErrorLogged += msg =>
+            {
+                if (msg == "Background save failed after RemoveSnippet")
+                    tcs.TrySetResult(true);
+            };
 
             var manager = new TestSnippetManager(logger);
             var snippet = new Snippet { Id = Guid.NewGuid(), Name = "Test", Content = "Test", Category = "Test" };
 
-            // Add synchronously bypassing background task for setup, or just add directly to collection.
-            // But we can't easily bypass AddSnippet's background task without it throwing an error too.
-            // Let's reset the TCS.
             manager.Snippets.Add(snippet);
 
             // Act
