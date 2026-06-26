@@ -18,7 +18,7 @@ namespace TypeIt4Me.Services
             _logger = logger;
         }
 
-        private string GetFilePath()
+        protected virtual string GetFilePath()
         {
             return Constants.GetAppDataPath(Constants.SettingsFileName);
         }
