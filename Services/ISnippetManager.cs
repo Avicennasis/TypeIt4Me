@@ -7,7 +7,7 @@ namespace TypeIt4Me.Services
     public interface ISnippetManager
     {
         BulkObservableCollection<Snippet> Snippets { get; }
-        void SetPin(string pin);
+        void SetPin(ReadOnlySpan<char> pin);
         Task SaveSnippetsAsync();
         Task LoadSnippetsAsync();
         void AddSnippet(Snippet snippet);

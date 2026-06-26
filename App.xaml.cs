@@ -108,7 +108,7 @@ namespace TypeIt4Me
                                 {
                                     unlocked = true;
                                     // Set PIN in Manager for Decryption
-                                    _snippetManager.SetPin(pinWin.Pin);
+                                    _snippetManager.SetPin(pinWin.Pin.AsSpan());
                                     // CRITICAL: Re-load snippets now that we have the PIN/Key
                                     await _snippetManager.LoadSnippetsAsync();
                                 }
@@ -187,7 +187,7 @@ namespace TypeIt4Me
                  _settingsManager.SaveSettingsAsync();
 
                  // Set PIN in manager and Save (this triggers encryption)
-                 _snippetManager!.SetPin(pinWin.Pin);
+                 _snippetManager!.SetPin(pinWin.Pin.AsSpan());
                  _snippetManager.SaveSnippetsAsync();
 
                  MessageBox.Show("PIN Set Successfully! Your snippets are now encrypted with V3 (AES-256 + HMAC-SHA256).", "Security", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -358,7 +358,7 @@ namespace TypeIt4Me
                              authenticated = true;
                              _mainViewModel.UnlockApp();
                              // Ensure PIN is set in manager (for decryption if needed, though usually set on startup)
-                             _snippetManager.SetPin(pinWin.Pin);
+                             _snippetManager.SetPin(pinWin.Pin.AsSpan());
                          }
                          else
                          {
