@@ -5,16 +5,23 @@ namespace TypeIt4Me.Services
 {
     public class AutoLockService : IDisposable, IAutoLockService
     {
-        private readonly DispatcherTimer _timer;
+        private readonly ITimer _timer;
         private DateTime _lastActivity;
         private readonly ISettingsManager _settingsManager;
+        private readonly Func<DateTime> _nowProvider;
 
-        public event Action OnLockTriggered;
+        public event Action? OnLockTriggered;
 
         public AutoLockService(ISettingsManager settingsManager)
+            : this(settingsManager, new DispatcherTimerWrapper(), () => DateTime.Now)
+        {
+        }
+
+        internal AutoLockService(ISettingsManager settingsManager, ITimer timer, Func<DateTime> nowProvider)
         {
             _settingsManager = settingsManager;
-            _timer = new DispatcherTimer();
+            _timer = timer;
+            _nowProvider = nowProvider;
             _timer.Tick += Timer_Tick;
             
             // Check every 5 seconds
@@ -27,7 +34,7 @@ namespace TypeIt4Me.Services
 
         public void UpdateLastActivity()
         {
-            _lastActivity = DateTime.Now;
+            _lastActivity = _nowProvider();
         }
 
         public void EvaluateTimerState()
@@ -46,7 +53,7 @@ namespace TypeIt4Me.Services
         {
             if (_settingsManager.Settings.AutoLockMinutes > 0)
             {
-                if ((DateTime.Now - _lastActivity).TotalMinutes >= _settingsManager.Settings.AutoLockMinutes)
+                if ((_nowProvider() - _lastActivity).TotalMinutes >= _settingsManager.Settings.AutoLockMinutes)
                 {
                      // Only lock if PIN is set
                      if (!string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
