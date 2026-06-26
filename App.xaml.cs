@@ -190,7 +190,11 @@ namespace TypeIt4Me
                  _snippetManager!.SetPin(pinWin.Pin);
                  _snippetManager.SaveSnippetsAsync();
 
-                 MessageBox.Show("PIN Set Successfully! Your snippets are now encrypted with V3 (AES-256 + HMAC-SHA256).", "Security", MessageBoxButton.OK, MessageBoxImage.Information);
+                 MessageBox.Show(
+                     "PIN Set Successfully! Your snippets are now encrypted with V3 (AES-256 + HMAC-SHA256).",
+                     "Security",
+                     MessageBoxButton.OK,
+                     MessageBoxImage.Information);
             }
         }
 
