@@ -11,9 +11,9 @@ namespace TypeIt4Me.Tests.Fakes
         public BulkObservableCollection<Snippet> Snippets { get; } = new BulkObservableCollection<Snippet>();
         public List<string> SetPinLog { get; } = new List<string>();
 
-        public void SetPin(string pin)
+        public void SetPin(ReadOnlySpan<char> pin)
         {
-            SetPinLog.Add(pin);
+            SetPinLog.Add(pin.ToString());
         }
 
         public Task SaveSnippetsAsync() => Task.CompletedTask;

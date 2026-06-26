@@ -26,14 +26,14 @@ namespace TypeIt4Me.Services
             _logger = logger;
         }
 
-        public void SetPin(string pin)
+        public void SetPin(ReadOnlySpan<char> pin)
         {
             // Zero the previous PIN before replacing it so it doesn't linger in memory.
             if (_currentPin != null)
             {
                 Array.Clear(_currentPin, 0, _currentPin.Length);
             }
-            _currentPin = string.IsNullOrEmpty(pin) ? null : pin.ToCharArray();
+            _currentPin = pin.IsEmpty ? null : pin.ToArray();
         }
 
         private string GetFilePath()

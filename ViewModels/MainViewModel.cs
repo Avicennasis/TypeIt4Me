@@ -342,7 +342,7 @@ namespace TypeIt4Me.ViewModels
              _settingsManager.SaveSettingsAsync();
              
              // Disable encryption and save as plain text
-             _snippetManager.SetPin(string.Empty);
+             _snippetManager.SetPin(ReadOnlySpan<char>.Empty);
              _snippetManager.SaveSnippetsAsync();
              
              MessageBox.Show("PIN Removed. Snippets are now stored in plain text.", "Security", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -415,7 +415,7 @@ namespace TypeIt4Me.ViewModels
         {
             IsLocked = true;
             // Clear PIN from memory on lock
-            _snippetManager.SetPin(string.Empty);
+            _snippetManager.SetPin(ReadOnlySpan<char>.Empty);
             // Clear snippets from memory? MVP: No, just hide UI.
         }
 
