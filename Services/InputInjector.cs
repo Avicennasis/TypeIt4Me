@@ -151,13 +151,18 @@ namespace TypeIt4Me.Services
         /// <summary>
         /// Processes a single command like TAB, ENTER, SLEEP 1500, etc.
         /// </summary>
+        private bool TryParseSleepDuration(string command, out int milliseconds)
+        {
+            var span = command.AsSpan("SLEEP".Length).Trim();
+            return int.TryParse(span, out milliseconds);
+        }
+
         private async Task ProcessCommand(string command)
         {
             // Check for SLEEP command with duration
             if (command.StartsWith("SLEEP", StringComparison.OrdinalIgnoreCase))
             {
-                var parts = command.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 2 && int.TryParse(parts[1], out int milliseconds))
+                if (TryParseSleepDuration(command, out int milliseconds))
                 {
                     // Clamp to reasonable range (1ms to 60 seconds)
                     milliseconds = Math.Max(1, Math.Min(milliseconds, 60000));
