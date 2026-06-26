@@ -253,7 +253,11 @@ namespace TypeIt4Me
                          _snippetManager.AddSnippet(vm.CurrentSnippet);
                          if (!RegisterSnippetHotkey(vm.CurrentSnippet))
                          {
-                             MessageBox.Show("Failed to register hotkey for this snippet. Key combination may be in use.", "Hotkey Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                             MessageBox.Show(
+                                 "Failed to register hotkey for this snippet. Key combination may be in use.",
+                                 "Hotkey Error",
+                                 MessageBoxButton.OK,
+                                 MessageBoxImage.Warning);
                          }
                     }
                     else
