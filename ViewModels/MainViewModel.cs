@@ -457,13 +457,20 @@ namespace TypeIt4Me.ViewModels
                          // Let's create a generic RequestPinInput event that returns a string (via args or callback).
                          // Simplified: We'll misuse the SettingsManager flow or just add a direct callback action.
                          
-                         string? inputPin = null;
+                         char[]? inputPin = null;
                          RequestPinInput?.Invoke((pin) => inputPin = pin);
                          
-                         if (!string.IsNullOrEmpty(inputPin))
+                         if (inputPin != null && inputPin.Length > 0)
                          {
-                             success = await _snippetManager.ImportSnippetsAsync(dialog.FileName, inputPin);
-                             if (success) MessageBox.Show("Import Successful!", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                             try
+                             {
+                                 success = await _snippetManager.ImportSnippetsAsync(dialog.FileName, inputPin);
+                                 if (success) MessageBox.Show("Import Successful!", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                             }
+                             finally
+                             {
+                                 Array.Clear(inputPin, 0, inputPin.Length);
+                             }
                          }
                          else
                          {
@@ -478,7 +485,7 @@ namespace TypeIt4Me.ViewModels
             }
         }
         
-        public event Action<Action<string>> RequestPinInput;
+        public event Action<Action<char[]?>> RequestPinInput;
 
         [RelayCommand]
         private void RestoreFromTray()

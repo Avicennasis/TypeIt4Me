@@ -187,7 +187,7 @@ namespace TypeIt4Me.Services
              }
         }
 
-        public async Task<bool> ImportSnippetsAsync(string filePath, string? importPin = null)
+        public async Task<bool> ImportSnippetsAsync(string filePath, char[]? importPin = null)
         {
             try
             {
