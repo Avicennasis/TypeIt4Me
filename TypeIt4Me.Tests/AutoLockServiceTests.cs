@@ -158,5 +158,61 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.False(lockTriggered);
         }
+
+        [Fact]
+        public void TimerTick_DoesNotTriggerLock_WhenAutoLockMinutesIsZero()
+        {
+            // Arrange
+            var settingsManager = new FakeSettingsManager();
+            settingsManager.Settings.AutoLockMinutes = 0;
+            settingsManager.Settings.PinHash = "somehash";
+
+            var timer = new FakeTimer();
+            var currentTime = new DateTime(2023, 1, 1, 12, 0, 0);
+
+            var service = new AutoLockService(settingsManager, timer, () => currentTime);
+
+            bool lockTriggered = false;
+            service.OnLockTriggered += () => lockTriggered = true;
+
+            // Act
+            currentTime = currentTime.AddMinutes(6);
+            timer.TriggerTick();
+
+            // Assert
+            Assert.False(lockTriggered);
+        }
+
+        [Fact]
+        public void Stop_StopsTimer()
+        {
+            // Arrange
+            var settingsManager = new FakeSettingsManager();
+            var timer = new FakeTimer();
+            timer.Start(); // Ensure it's running
+            var service = new AutoLockService(settingsManager, timer, () => DateTime.Now);
+
+            // Act
+            service.Stop();
+
+            // Assert
+            Assert.False(timer.IsEnabled);
+        }
+
+        [Fact]
+        public void Dispose_StopsTimer()
+        {
+            // Arrange
+            var settingsManager = new FakeSettingsManager();
+            var timer = new FakeTimer();
+            timer.Start(); // Ensure it's running
+            var service = new AutoLockService(settingsManager, timer, () => DateTime.Now);
+
+            // Act
+            service.Dispose();
+
+            // Assert
+            Assert.False(timer.IsEnabled);
+        }
     }
 }
