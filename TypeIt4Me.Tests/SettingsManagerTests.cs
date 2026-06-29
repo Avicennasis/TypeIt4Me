@@ -122,6 +122,8 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.True(logger.ErrorLogged);
             Assert.Contains("Error loading settings", logger.LastErrorMessage);
+            Assert.NotNull(logger.LoggedException);
+            Assert.IsType<System.Text.Json.JsonException>(logger.LoggedException);
         }
 
         [Fact]
@@ -143,6 +145,8 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.True(logger.ErrorLogged);
             Assert.Contains("Error loading settings", logger.LastErrorMessage);
+            Assert.NotNull(logger.LoggedException);
+            Assert.True(logger.LoggedException is IOException || logger.LoggedException is UnauthorizedAccessException);
         }
     }
 }
