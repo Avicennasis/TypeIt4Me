@@ -187,7 +187,13 @@ namespace TypeIt4Me.Services
              }
         }
 
-        public async Task<bool> ImportSnippetsAsync(string filePath, string? importPin = null)
+        public Task<bool> ImportSnippetsAsync(string filePath, ReadOnlySpan<char> importPin = default)
+        {
+            char[]? pinArray = importPin.IsEmpty ? null : importPin.ToArray();
+            return ImportSnippetsInternalAsync(filePath, pinArray);
+        }
+
+        private async Task<bool> ImportSnippetsInternalAsync(string filePath, char[]? importPin)
         {
             try
             {
@@ -216,6 +222,13 @@ namespace TypeIt4Me.Services
             {
                 _logger.LogError("Error importing snippets", ex);
                 return false;
+            }
+            finally
+            {
+                if (importPin != null)
+                {
+                    Array.Clear(importPin, 0, importPin.Length);
+                }
             }
         }
 

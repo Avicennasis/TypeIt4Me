@@ -235,7 +235,7 @@ namespace TypeIt4Me.Tests
                 await File.WriteAllTextAsync(importFilePath, encrypted);
 
                 // Act
-                bool result = await _manager.ImportSnippetsAsync(importFilePath, pin);
+                bool result = await _manager.ImportSnippetsAsync(importFilePath, pin.AsSpan());
 
                 // Assert
                 Assert.True(result);
@@ -323,7 +323,7 @@ namespace TypeIt4Me.Tests
                 await File.WriteAllTextAsync(importFilePath, encrypted);
 
                 // Act - try with wrong PIN
-                bool result = await _manager.ImportSnippetsAsync(importFilePath, "wrongpin");
+                bool result = await _manager.ImportSnippetsAsync(importFilePath, "wrongpin".AsSpan());
 
                 // Assert
                 Assert.False(result);

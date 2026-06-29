@@ -462,7 +462,7 @@ namespace TypeIt4Me.ViewModels
                          
                          if (!string.IsNullOrEmpty(inputPin))
                          {
-                             success = await _snippetManager.ImportSnippetsAsync(dialog.FileName, inputPin);
+                             success = await _snippetManager.ImportSnippetsAsync(dialog.FileName, inputPin.AsSpan());
                              if (success) MessageBox.Show("Import Successful!", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
                          }
                          else
