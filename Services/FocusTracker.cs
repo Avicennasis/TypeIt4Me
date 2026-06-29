@@ -7,10 +7,20 @@ namespace TypeIt4Me.Services
 {
     public class FocusTracker : IDisposable, IFocusTracker
     {
-        private CancellationTokenSource _cts;
+        private CancellationTokenSource? _cts;
         private IntPtr _myWindowHandle;
+        private readonly Func<IntPtr> _getForegroundWindow;
         
         public IntPtr LastExternalWindowHandle { get; private set; }
+
+        public FocusTracker() : this(NativeMethods.GetForegroundWindow)
+        {
+        }
+
+        internal FocusTracker(Func<IntPtr> getForegroundWindow)
+        {
+            _getForegroundWindow = getForegroundWindow;
+        }
 
         public void Start(IntPtr myWindowHandle)
         {
@@ -21,14 +31,21 @@ namespace TypeIt4Me.Services
 
         private async Task TrackFocusLoop(CancellationToken token)
         {
-            while (!token.IsCancellationRequested)
+            try
             {
-                IntPtr foreground = NativeMethods.GetForegroundWindow();
-                if (foreground != IntPtr.Zero && foreground != _myWindowHandle)
+                while (!token.IsCancellationRequested)
                 {
-                    LastExternalWindowHandle = foreground;
+                    IntPtr foreground = _getForegroundWindow();
+                    if (foreground != IntPtr.Zero && foreground != _myWindowHandle)
+                    {
+                        LastExternalWindowHandle = foreground;
+                    }
+                    await Task.Delay(200, token);
                 }
-                await Task.Delay(200, token);
+            }
+            catch (TaskCanceledException)
+            {
+                // Expected during shutdown
             }
         }
 
