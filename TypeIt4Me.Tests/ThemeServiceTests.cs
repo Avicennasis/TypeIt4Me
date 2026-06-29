@@ -10,7 +10,7 @@ namespace TypeIt4Me.Tests
         public void SetTheme_DarkTheme_AppliesDarkUri()
         {
             // Arrange
-            Uri? appliedUri = null;
+            string? appliedUri = null;
             bool uiInvoked = false;
 
             Action<Action> mockInvokeOnUI = (action) =>
@@ -19,7 +19,7 @@ namespace TypeIt4Me.Tests
                 action();
             };
 
-            Action<Uri> mockApplyTheme = (uri) =>
+            Action<string> mockApplyTheme = (uri) =>
             {
                 appliedUri = uri;
             };
@@ -32,14 +32,14 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.True(uiInvoked, "Expected SetTheme to invoke the UI dispatcher delegate.");
             Assert.NotNull(appliedUri);
-            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/DarkTheme.xaml", appliedUri.ToString());
+            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/DarkTheme.xaml", appliedUri);
         }
 
         [Fact]
         public void SetTheme_LightTheme_AppliesLightUri()
         {
             // Arrange
-            Uri? appliedUri = null;
+            string? appliedUri = null;
             bool uiInvoked = false;
 
             Action<Action> mockInvokeOnUI = (action) =>
@@ -48,7 +48,7 @@ namespace TypeIt4Me.Tests
                 action();
             };
 
-            Action<Uri> mockApplyTheme = (uri) =>
+            Action<string> mockApplyTheme = (uri) =>
             {
                 appliedUri = uri;
             };
@@ -61,7 +61,7 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.True(uiInvoked, "Expected SetTheme to invoke the UI dispatcher delegate.");
             Assert.NotNull(appliedUri);
-            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/LightTheme.xaml", appliedUri.ToString());
+            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/LightTheme.xaml", appliedUri);
         }
     }
 }

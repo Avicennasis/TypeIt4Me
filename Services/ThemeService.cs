@@ -6,20 +6,20 @@ namespace TypeIt4Me.Services
     public class ThemeService : IThemeService
     {
         private readonly Action<Action> _invokeOnUI;
-        private readonly Action<Uri> _applyTheme;
+        private readonly Action<string> _applyTheme;
 
         public ThemeService()
         {
             _invokeOnUI = (action) => Application.Current.Dispatcher.Invoke(action);
-            _applyTheme = (uri) =>
+            _applyTheme = (uriPath) =>
             {
-                var dict = new ResourceDictionary { Source = uri };
+                var dict = new ResourceDictionary { Source = new Uri(uriPath) };
                 Application.Current.Resources.MergedDictionaries.Clear();
                 Application.Current.Resources.MergedDictionaries.Add(dict);
             };
         }
 
-        internal ThemeService(Action<Action> invokeOnUI, Action<Uri> applyTheme)
+        internal ThemeService(Action<Action> invokeOnUI, Action<string> applyTheme)
         {
             _invokeOnUI = invokeOnUI;
             _applyTheme = applyTheme;
@@ -34,7 +34,7 @@ namespace TypeIt4Me.Services
                     "pack://application:,,,/TypeIt4Me;component/Views/DarkTheme.xaml" : 
                     "pack://application:,,,/TypeIt4Me;component/Views/LightTheme.xaml";
                 
-                _applyTheme(new Uri(uriPath));
+                _applyTheme(uriPath);
             });
         }
     }
