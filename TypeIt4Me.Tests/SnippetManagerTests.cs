@@ -171,6 +171,71 @@ namespace TypeIt4Me.Tests
             }
         }
 
+
+        [Fact]
+        public async Task ExportSnippetsAsync_FileAccessError_ThrowsExceptionAndReleasesLock()
+        {
+            // Arrange
+            var logger = new FakeLogger();
+            var manager = new SnippetManager(logger);
+
+            var snippet = new Snippet { Name = "Test", Content = "Content", Id = Guid.NewGuid() };
+            manager.Snippets.Add(snippet);
+
+            string tempFile = Path.GetTempFileName();
+
+            try
+            {
+                // Lock the file to cause an IOException
+                using (var stream = new FileStream(tempFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+                {
+                    // Act & Assert
+                    await Assert.ThrowsAnyAsync<IOException>(() => manager.ExportSnippetsAsync(tempFile));
+                }
+
+                // Verify lock was released by trying again
+                await manager.ExportSnippetsAsync(tempFile);
+
+                string fileContent = await File.ReadAllTextAsync(tempFile);
+                var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
+                Assert.NotNull(deserialized);
+                Assert.Single(deserialized);
+            }
+            finally
+            {
+                if (File.Exists(tempFile))
+                    File.Delete(tempFile);
+            }
+        }
+
+        [Fact]
+        public async Task ExportSnippetsAsync_EmptySnippets_ExportsEmptyJsonArray()
+        {
+            // Arrange
+            var logger = new FakeLogger();
+            var manager = new SnippetManager(logger);
+
+            string tempFile = Path.GetTempFileName();
+
+            try
+            {
+                // Act
+                await manager.ExportSnippetsAsync(tempFile);
+
+                // Assert
+                string fileContent = await File.ReadAllTextAsync(tempFile);
+                var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
+
+                Assert.NotNull(deserialized);
+                Assert.Empty(deserialized);
+            }
+            finally
+            {
+                if (File.Exists(tempFile))
+                    File.Delete(tempFile);
+            }
+        }
+
         // ===================================================================
         // Import tests (6 methods)
         // ===================================================================
