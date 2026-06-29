@@ -129,7 +129,7 @@ namespace TypeIt4Me.Services
                 // Type any text before this command
                 if (match.Index > lastIndex)
                 {
-                    string beforeText = text.Substring(lastIndex, match.Index - lastIndex);
+                    var beforeText = text.AsMemory(lastIndex, match.Index - lastIndex);
                     await TypePlainTextAsync(beforeText);
                 }
 
@@ -143,7 +143,7 @@ namespace TypeIt4Me.Services
             // Type any remaining text after the last command
             if (lastIndex < text.Length)
             {
-                string remainingText = text.Substring(lastIndex);
+                var remainingText = text.AsMemory(lastIndex);
                 await TypePlainTextAsync(remainingText);
             }
         }
@@ -180,19 +180,19 @@ namespace TypeIt4Me.Services
             // If not recognized, type it literally including the braces
             else
             {
-                await TypePlainTextAsync("{" + command + "}");
+                await TypePlainTextAsync(("{" + command + "}").AsMemory());
             }
         }
 
         /// <summary>
         /// Types plain text in batches, handling newlines specially
         /// </summary>
-        private async Task TypePlainTextAsync(string text)
+        private async Task TypePlainTextAsync(ReadOnlyMemory<char> text)
         {
             const int BatchSize = 50;
             for (int i = 0; i < text.Length; i += BatchSize)
             {
-                ReadOnlyMemory<char> batchMemory = text.AsMemory(i, Math.Min(BatchSize, text.Length - i));
+                ReadOnlyMemory<char> batchMemory = text.Slice(i, Math.Min(BatchSize, text.Length - i));
                 _inputSender.SendInputBatch(batchMemory.Span);
                 await _inputSender.DelayAsync(BatchDelayMs);
             }
