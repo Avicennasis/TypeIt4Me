@@ -103,6 +103,28 @@ namespace TypeIt4Me.Tests
             Assert.True(logger.LoggedException is IOException || logger.LoggedException is UnauthorizedAccessException);
         }
 
+        [Fact]
+        public async Task SaveSettingsAsync_TempFileLocked_LogsError()
+        {
+            // Arrange
+            var logger = new TestLogger();
+            string testPath = Path.Combine(_testDirectory, "settings.json");
+            string tempPath = testPath + ".tmp";
+            var manager = new TestSettingsManager(logger, testPath);
+
+            // Create the temporary file and lock it so File.Create fails
+            using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                // Act
+                await manager.SaveSettingsAsync();
+            }
+
+            // Assert
+            Assert.True(logger.ErrorLogged);
+            Assert.NotNull(logger.LoggedException);
+            Assert.True(logger.LoggedException is IOException || logger.LoggedException is UnauthorizedAccessException);
+        }
+
         // ===================================================================
         // Load error tests (2 methods)
         // ===================================================================
