@@ -36,7 +36,7 @@ namespace TypeIt4Me.Services
             string fullMessage = message;
             if (ex != null)
             {
-                fullMessage += $"\nException: {ex.GetType().FullName}\nMessage: {ex.Message}\nStack Trace:\n{ex.StackTrace}";
+                fullMessage += $"\nException: {ex.GetType().FullName}";
             }
             Log("ERROR", fullMessage);
         }
