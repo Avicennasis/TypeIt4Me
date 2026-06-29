@@ -179,6 +179,9 @@ namespace TypeIt4Me.Tests
         public async Task ImportSnippetsAsync_PlainJson_Success()
         {
             // Arrange
+            var existingSnippet = new Snippet { Id = Guid.NewGuid(), Name = "existing", Content = "oldContent" };
+            _manager.Snippets.Add(existingSnippet); // Pre-populate
+
             var snippets = new List<Snippet>
             {
                 new Snippet { Id = Guid.NewGuid(), Name = "test1", Content = "content1" },
@@ -195,17 +198,65 @@ namespace TypeIt4Me.Tests
 
                 // Assert
                 Assert.True(result);
-                Assert.Equal(2, _manager.Snippets.Count);
+                Assert.Equal(3, _manager.Snippets.Count); // 1 existing + 2 imported
 
-                // Verify IDs are regenerated
-                Assert.NotEqual(snippets[0].Id, _manager.Snippets[0].Id);
-                Assert.NotEqual(snippets[1].Id, _manager.Snippets[1].Id);
+                // Verify existing remains intact
+                Assert.Equal("existing", _manager.Snippets[0].Name);
+
+                // Verify IDs are regenerated for imported
+                Assert.NotEqual(snippets[0].Id, _manager.Snippets[1].Id);
+                Assert.NotEqual(snippets[1].Id, _manager.Snippets[2].Id);
 
                 // Verify content
-                Assert.Equal("test1", _manager.Snippets[0].Name);
-                Assert.Equal("content1", _manager.Snippets[0].Content);
+                Assert.Equal("test1", _manager.Snippets[1].Name);
+                Assert.Equal("content1", _manager.Snippets[1].Content);
 
-                // Verify saved to test file path (app data)
+                // Verify saved to test file path (app data) in plain text
+                string savedContent = await File.ReadAllTextAsync(_tempFile);
+                var savedSnippets = JsonSerializer.Deserialize<List<Snippet>>(savedContent);
+                Assert.NotNull(savedSnippets);
+                Assert.Equal(3, savedSnippets.Count);
+                Assert.Equal("existing", savedSnippets[0].Name);
+            }
+            finally
+            {
+                if (File.Exists(importFilePath)) File.Delete(importFilePath);
+            }
+        }
+
+        [Fact]
+        public async Task ImportSnippetsAsync_EncryptedJson_ExplicitPin_Success()
+        {
+            // Arrange
+            var existingSnippet = new Snippet { Id = Guid.NewGuid(), Name = "existing", Content = "oldContent" };
+            _manager.Snippets.Add(existingSnippet); // Pre-populate
+
+            var snippets = new List<Snippet>
+            {
+                new Snippet { Id = Guid.NewGuid(), Name = "enc1", Content = "secret1" }
+            };
+            string json = JsonSerializer.Serialize(snippets);
+            string pin = "mysecretpin";
+            string encrypted = CryptoService.Encrypt(json, pin);
+
+            // Note: Since _manager doesn't have a session PIN set, it will save in plain text.
+
+            string importFilePath = Path.GetTempFileName();
+            try
+            {
+                await File.WriteAllTextAsync(importFilePath, encrypted);
+
+                // Act
+                bool result = await _manager.ImportSnippetsAsync(importFilePath, pin);
+
+                // Assert
+                Assert.True(result);
+                Assert.Equal(2, _manager.Snippets.Count);
+                Assert.Equal("existing", _manager.Snippets[0].Name);
+                Assert.Equal("enc1", _manager.Snippets[1].Name);
+                Assert.Equal("secret1", _manager.Snippets[1].Content);
+
+                // Verify saved to test file path in plain text (because session pin is not set)
                 string savedContent = await File.ReadAllTextAsync(_tempFile);
                 var savedSnippets = JsonSerializer.Deserialize<List<Snippet>>(savedContent);
                 Assert.NotNull(savedSnippets);
@@ -218,41 +269,12 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async Task ImportSnippetsAsync_EncryptedJson_ExplicitPin_Success()
-        {
-            // Arrange
-            var snippets = new List<Snippet>
-            {
-                new Snippet { Id = Guid.NewGuid(), Name = "enc1", Content = "secret1" }
-            };
-            string json = JsonSerializer.Serialize(snippets);
-            string pin = "mysecretpin";
-            string encrypted = CryptoService.Encrypt(json, pin);
-
-            string importFilePath = Path.GetTempFileName();
-            try
-            {
-                await File.WriteAllTextAsync(importFilePath, encrypted);
-
-                // Act
-                bool result = await _manager.ImportSnippetsAsync(importFilePath, pin);
-
-                // Assert
-                Assert.True(result);
-                Assert.Single(_manager.Snippets);
-                Assert.Equal("enc1", _manager.Snippets[0].Name);
-                Assert.Equal("secret1", _manager.Snippets[0].Content);
-            }
-            finally
-            {
-                if (File.Exists(importFilePath)) File.Delete(importFilePath);
-            }
-        }
-
-        [Fact]
         public async Task ImportSnippetsAsync_EncryptedJson_SessionPin_Success()
         {
             // Arrange
+            var existingSnippet = new Snippet { Id = Guid.NewGuid(), Name = "existing", Content = "oldContent" };
+            _manager.Snippets.Add(existingSnippet);
+
             var snippets = new List<Snippet>
             {
                 new Snippet { Id = Guid.NewGuid(), Name = "enc2", Content = "secret2" }
@@ -266,7 +288,7 @@ namespace TypeIt4Me.Tests
             {
                 await File.WriteAllTextAsync(importFilePath, encrypted);
 
-                // Set the session PIN on the manager
+                // Set the session PIN on the manager so it attempts to save encrypted
                 _manager.SetPin(sessionPin.AsSpan());
 
                 // Act - import without explicit PIN
@@ -274,9 +296,22 @@ namespace TypeIt4Me.Tests
 
                 // Assert
                 Assert.True(result);
-                Assert.Single(_manager.Snippets);
-                Assert.Equal("enc2", _manager.Snippets[0].Name);
-                Assert.Equal("secret2", _manager.Snippets[0].Content);
+                Assert.Equal(2, _manager.Snippets.Count);
+                Assert.Equal("existing", _manager.Snippets[0].Name);
+                Assert.Equal("enc2", _manager.Snippets[1].Name);
+                Assert.Equal("secret2", _manager.Snippets[1].Content);
+
+                // Verify saved file is encrypted
+                string savedContent = await File.ReadAllTextAsync(_tempFile);
+                // It should fail plain text deserialization
+                Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<List<Snippet>>(savedContent));
+
+                // Decrypt saved content to verify
+                string decryptedContent = CryptoService.Decrypt(savedContent, sessionPin);
+                var savedSnippets = JsonSerializer.Deserialize<List<Snippet>>(decryptedContent);
+                Assert.NotNull(savedSnippets);
+                Assert.Equal(2, savedSnippets.Count);
+                Assert.Equal("existing", savedSnippets[0].Name);
             }
             finally
             {
@@ -344,6 +379,29 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.False(result);
             Assert.Empty(_manager.Snippets);
+        }
+
+        [Fact]
+        public async Task ImportSnippetsAsync_FileReadFails_LogsError_ReturnsFalse()
+        {
+            // Arrange
+            string importFilePath = Path.GetTempFileName();
+            try
+            {
+                // Lock the file exclusively to simulate an access/read error
+                using var lockStream = new FileStream(importFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+
+                // Act
+                bool result = await _manager.ImportSnippetsAsync(importFilePath);
+
+                // Assert
+                Assert.False(result);
+                Assert.Contains(_logger.ErrorLogs, log => log.Message == "Error importing snippets");
+            }
+            finally
+            {
+                if (File.Exists(importFilePath)) File.Delete(importFilePath);
+            }
         }
 
         // ===================================================================
