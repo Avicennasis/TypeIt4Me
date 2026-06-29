@@ -28,29 +28,35 @@ namespace TypeIt4Me.Services
             try
             {
                 string path = GetFilePath();
-                if (File.Exists(path))
+
+                await _fileLock.WaitAsync();
+                try
                 {
-                    await _fileLock.WaitAsync();
-                    try
+                    using FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
+                    var loaded = await JsonSerializer.DeserializeAsync<AppSettings>(stream);
+                    if (loaded != null)
                     {
-                        using FileStream stream = File.OpenRead(path);
-                        var loaded = await JsonSerializer.DeserializeAsync<AppSettings>(stream);
-                        if (loaded != null)
-                        {
-                            Settings.AlwaysOnTop = loaded.AlwaysOnTop;
-                            Settings.PinHash = loaded.PinHash;
-                            Settings.PinSalt = loaded.PinSalt;
-                            Settings.IsMiniMode = loaded.IsMiniMode;
-                            Settings.MinimizeToTray = loaded.MinimizeToTray;
-                            Settings.IsDarkMode = loaded.IsDarkMode;
-                            Settings.AutoLockMinutes = loaded.AutoLockMinutes;
-                            Settings.LockOnRestore = loaded.LockOnRestore;
-                        }
+                        Settings.AlwaysOnTop = loaded.AlwaysOnTop;
+                        Settings.PinHash = loaded.PinHash;
+                        Settings.PinSalt = loaded.PinSalt;
+                        Settings.IsMiniMode = loaded.IsMiniMode;
+                        Settings.MinimizeToTray = loaded.MinimizeToTray;
+                        Settings.IsDarkMode = loaded.IsDarkMode;
+                        Settings.AutoLockMinutes = loaded.AutoLockMinutes;
+                        Settings.LockOnRestore = loaded.LockOnRestore;
                     }
-                    finally
-                    {
-                        _fileLock.Release();
-                    }
+                }
+                catch (FileNotFoundException)
+                {
+                    // Ignore, first run
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    // Ignore, first run
+                }
+                finally
+                {
+                    _fileLock.Release();
                 }
             }
             catch (Exception ex)
