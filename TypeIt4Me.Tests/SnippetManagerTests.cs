@@ -355,9 +355,12 @@ namespace TypeIt4Me.Tests
         {
             // Arrange
             var logger = new MockLogger();
-            var invalidPath = Path.Combine("InvalidDrive:\\", "nonexistent", "snippets.json");
+            string tempFile = Path.GetTempFileName();
 
-            var snippetManager = new TestableSnippetManager(logger, invalidPath);
+            // Ensure the temporary file exists before trying to lock it
+            await File.WriteAllTextAsync(tempFile, "[]");
+
+            var snippetManager = new TestableSnippetManager(logger, tempFile);
             var snippet = new Snippet { Name = "Test" };
 
             var tcs = new TaskCompletionSource<bool>();
@@ -370,14 +373,28 @@ namespace TypeIt4Me.Tests
                 }
             };
 
-            // Act
-            snippetManager.AddSnippet(snippet);
+            try
+            {
+                // Lock the target file so SaveSnippetsAsync fails
+                using (var fs = new FileStream(tempFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    // Act
+                    snippetManager.AddSnippet(snippet);
 
-            // Assert
-            var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
-            Assert.Equal(tcs.Task, completedTask);
+                    // Assert
+                    var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
+                    Assert.Equal(tcs.Task, completedTask);
+                }
 
-            Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after AddSnippet");
+                Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after AddSnippet");
+            }
+            finally
+            {
+                if (File.Exists(tempFile))
+                {
+                    File.Delete(tempFile);
+                }
+            }
         }
 
         [Fact]
@@ -385,9 +402,12 @@ namespace TypeIt4Me.Tests
         {
             // Arrange
             var logger = new MockLogger();
-            var invalidPath = Path.Combine("InvalidDrive:\\", "nonexistent", "snippets.json");
+            string tempFile = Path.GetTempFileName();
 
-            var snippetManager = new TestableSnippetManager(logger, invalidPath);
+            // Ensure the temporary file exists before trying to lock it
+            await File.WriteAllTextAsync(tempFile, "[]");
+
+            var snippetManager = new TestableSnippetManager(logger, tempFile);
             var snippet = new Snippet { Name = "Test" };
             snippetManager.Snippets.Add(snippet); // Add directly to bypass AddSnippet's background task
 
@@ -401,14 +421,28 @@ namespace TypeIt4Me.Tests
                 }
             };
 
-            // Act
-            snippetManager.RemoveSnippet(snippet);
+            try
+            {
+                // Lock the target file so SaveSnippetsAsync fails
+                using (var fs = new FileStream(tempFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    // Act
+                    snippetManager.RemoveSnippet(snippet);
 
-            // Assert
-            var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
-            Assert.Equal(tcs.Task, completedTask);
+                    // Assert
+                    var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
+                    Assert.Equal(tcs.Task, completedTask);
+                }
 
-            Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after RemoveSnippet");
+                Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after RemoveSnippet");
+            }
+            finally
+            {
+                if (File.Exists(tempFile))
+                {
+                    File.Delete(tempFile);
+                }
+            }
         }
     }
 }
