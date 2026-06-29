@@ -102,19 +102,29 @@ namespace TypeIt4Me
                             var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
                             if (pinWin.ShowDialog() == true)
                             {
-                                // Validate PIN using salted hash (V3 only)
-                                string hash = Services.CryptoService.HashPin(pinWin.Pin.AsSpan(), _settingsManager.Settings.PinSalt);
-                                if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
+                                char[]? pinChars = null;
+                                try
                                 {
-                                    unlocked = true;
-                                    // Set PIN in Manager for Decryption
-                                    _snippetManager.SetPin(pinWin.Pin.AsSpan());
-                                    // CRITICAL: Re-load snippets now that we have the PIN/Key
-                                    await _snippetManager.LoadSnippetsAsync();
+                                    pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
+
+                                    // Validate PIN using salted hash (V3 only)
+                                    string hash = Services.CryptoService.HashPin(pinChars.AsSpan(), _settingsManager.Settings.PinSalt);
+                                    if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
+                                    {
+                                        unlocked = true;
+                                        // Set PIN in Manager for Decryption
+                                        _snippetManager.SetPin(pinChars.AsSpan());
+                                        // CRITICAL: Re-load snippets now that we have the PIN/Key
+                                        await _snippetManager.LoadSnippetsAsync();
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show("Invalid PIN. Please try again.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    }
                                 }
-                                else
+                                finally
                                 {
-                                    MessageBox.Show("Invalid PIN. Please try again.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
                                 }
                             }
                             else
@@ -157,44 +167,54 @@ namespace TypeIt4Me
             var pinWin = new PinEntryWindow("Set New PIN (Minimum 4 characters)");
             if (pinWin.ShowDialog() == true)
             {
-                 // Security: Enforce minimum PIN length
-                 if (string.IsNullOrEmpty(pinWin.Pin) || pinWin.Pin.Length < 4)
+                 char[]? pinChars = null;
+                 try
                  {
-                     MessageBox.Show("PIN must be at least 4 characters long.", "Invalid PIN", MessageBoxButton.OK, MessageBoxImage.Warning);
-                     return;
-                 }
+                     pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
 
-                 // Recommendation for strong PINs
-                 if (pinWin.Pin.Length < 6)
-                 {
-                     var result = MessageBox.Show(
-                         "Your PIN is short. For better security, we recommend using at least 6 characters.\n\nDo you want to continue with this PIN?",
-                         "Security Recommendation",
-                         MessageBoxButton.YesNo,
-                         MessageBoxImage.Question);
-                     if (result == MessageBoxResult.No)
+                     // Security: Enforce minimum PIN length
+                     if (pinChars == null || pinChars.Length < 4)
                      {
+                         MessageBox.Show("PIN must be at least 4 characters long.", "Invalid PIN", MessageBoxButton.OK, MessageBoxImage.Warning);
                          return;
                      }
+
+                     // Recommendation for strong PINs
+                     if (pinChars.Length < 6)
+                     {
+                         var result = MessageBox.Show(
+                             "Your PIN is short. For better security, we recommend using at least 6 characters.\n\nDo you want to continue with this PIN?",
+                             "Security Recommendation",
+                             MessageBoxButton.YesNo,
+                             MessageBoxImage.Question);
+                         if (result == MessageBoxResult.No)
+                         {
+                             return;
+                         }
+                     }
+
+                     // Generate Salt and Hash
+                     string salt = Services.CryptoService.GenerateSalt();
+                     string hash = Services.CryptoService.HashPin(pinChars.AsSpan(), salt);
+
+                     _settingsManager.Settings.PinSalt = salt;
+                     _settingsManager.Settings.PinHash = hash;
+                     _settingsManager.SaveSettingsAsync();
+
+                     // Set PIN in manager and Save (this triggers encryption)
+                     _snippetManager!.SetPin(pinChars.AsSpan());
+                     _snippetManager.SaveSnippetsAsync();
+
+                     MessageBox.Show(
+                         "PIN Set Successfully! Your snippets are now encrypted with V3 (AES-256 + HMAC-SHA256).",
+                         "Security",
+                         MessageBoxButton.OK,
+                         MessageBoxImage.Information);
                  }
-
-                 // Generate Salt and Hash
-                 string salt = Services.CryptoService.GenerateSalt();
-                 string hash = Services.CryptoService.HashPin(pinWin.Pin.AsSpan(), salt);
-
-                 _settingsManager.Settings.PinSalt = salt;
-                 _settingsManager.Settings.PinHash = hash;
-                 _settingsManager.SaveSettingsAsync();
-
-                 // Set PIN in manager and Save (this triggers encryption)
-                 _snippetManager!.SetPin(pinWin.Pin.AsSpan());
-                 _snippetManager.SaveSnippetsAsync();
-
-                 MessageBox.Show(
-                     "PIN Set Successfully! Your snippets are now encrypted with V3 (AES-256 + HMAC-SHA256).",
-                     "Security",
-                     MessageBoxButton.OK,
-                     MessageBoxImage.Information);
+                 finally
+                 {
+                     if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
+                 }
             }
         }
 
@@ -317,16 +337,17 @@ namespace TypeIt4Me
              return true; // No hotkey to register count as success
         }
 
-        private void MainViewModel_RequestPinInput(Action<string> callback)
+        private void MainViewModel_RequestPinInput(Action<char[]?> callback)
         {
             var pinWin = new PinEntryWindow("Enter PIN for Import");
             if (pinWin.ShowDialog() == true)
             {
-                callback(pinWin.Pin);
+                char[]? pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
+                callback(pinChars);
             }
             else
             {
-                callback(string.Empty);
+                callback(Array.Empty<char>());
             }
         }
 
@@ -355,18 +376,28 @@ namespace TypeIt4Me
                      var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
                      if (pinWin.ShowDialog() == true)
                      {
-                         // Use Salted Check
-                         string hash = Services.CryptoService.HashPin(pinWin.Pin.AsSpan(), _settingsManager.Settings.PinSalt);
-                         if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
+                         char[]? pinChars = null;
+                         try
                          {
-                             authenticated = true;
-                             _mainViewModel.UnlockApp();
-                             // Ensure PIN is set in manager (for decryption if needed, though usually set on startup)
-                             _snippetManager.SetPin(pinWin.Pin.AsSpan());
+                             pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
+
+                             // Use Salted Check
+                             string hash = Services.CryptoService.HashPin(pinChars.AsSpan(), _settingsManager.Settings.PinSalt);
+                             if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
+                             {
+                                 authenticated = true;
+                                 _mainViewModel.UnlockApp();
+                                 // Ensure PIN is set in manager (for decryption if needed, though usually set on startup)
+                                 _snippetManager.SetPin(pinChars.AsSpan());
+                             }
+                             else
+                             {
+                                 MessageBox.Show("Invalid PIN.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
+                             }
                          }
-                         else
+                         finally
                          {
-                             MessageBox.Show("Invalid PIN.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
+                             if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
                          }
                      }
                      else

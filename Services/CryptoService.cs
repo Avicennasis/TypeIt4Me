@@ -12,6 +12,28 @@ namespace TypeIt4Me.Services
     /// </summary>
     public static class CryptoService
     {
+        public static char[]? SecureStringToCharArray(System.Security.SecureString? secureString)
+        {
+            if (secureString == null || secureString.Length == 0)
+                return Array.Empty<char>();
+
+            IntPtr unmanagedChars = IntPtr.Zero;
+            try
+            {
+                unmanagedChars = System.Runtime.InteropServices.Marshal.SecureStringToGlobalAllocUnicode(secureString);
+                char[] chars = new char[secureString.Length];
+                System.Runtime.InteropServices.Marshal.Copy(unmanagedChars, chars, 0, secureString.Length);
+                return chars;
+            }
+            finally
+            {
+                if (unmanagedChars != IntPtr.Zero)
+                {
+                    System.Runtime.InteropServices.Marshal.ZeroFreeGlobalAllocUnicode(unmanagedChars);
+                }
+            }
+        }
+
         // Cryptographic constants
         private const int SaltSize = 32;           // 32 bytes = 256 bits for salt
         private const int IVSize = 16;             // 16 bytes = 128 bits for AES IV

@@ -4,7 +4,7 @@ namespace TypeIt4Me.Views
 {
     public partial class PinEntryWindow : Window
     {
-        public string Pin { get; private set; } = string.Empty;
+        public System.Security.SecureString? SecurePin { get; private set; }
 
         public PinEntryWindow(string title = "Enter PIN")
         {
@@ -15,7 +15,7 @@ namespace TypeIt4Me.Views
 
         private void OK_Click(object sender, RoutedEventArgs e)
         {
-            Pin = PinBox.Password;
+            SecurePin = PinBox.SecurePassword.Copy();
             DialogResult = true;
             Close();
         }

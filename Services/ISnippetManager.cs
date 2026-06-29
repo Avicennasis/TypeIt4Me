@@ -13,6 +13,6 @@ namespace TypeIt4Me.Services
         void AddSnippet(Snippet snippet);
         void RemoveSnippet(Snippet snippet);
         Task ExportSnippetsAsync(string filePath);
-        Task<bool> ImportSnippetsAsync(string filePath, string pin = null);
+        Task<bool> ImportSnippetsAsync(string filePath, char[]? pin = null);
     }
 }
