@@ -28,7 +28,7 @@ namespace TypeIt4Me.Views
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Failed to open help link: {ex.Message}");
+                    Debug.WriteLine($"Failed to open help link: {ex.GetType().FullName}");
                 }
             }
             else

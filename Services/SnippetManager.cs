@@ -65,7 +65,7 @@ namespace TypeIt4Me.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Decrypt/deserialize of encrypted snippets failed: {ex.Message}");
+                    Debug.WriteLine($"Decrypt/deserialize of encrypted snippets failed: {ex.GetType().FullName}");
                 }
                 return null;
             }
@@ -76,7 +76,7 @@ namespace TypeIt4Me.Services
             }
             catch (JsonException ex)
             {
-                Debug.WriteLine($"Plain-text snippet deserialization failed: {ex.Message}");
+                Debug.WriteLine($"Plain-text snippet deserialization failed: {ex.GetType().FullName}");
                 return null;
             }
         }
@@ -156,7 +156,7 @@ namespace TypeIt4Me.Services
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"Failed to delete temporary file {tempPath}: {ex.Message}");
+                        Debug.WriteLine($"Failed to delete temporary file {tempPath}: {ex.GetType().FullName}");
                     }
                 }
 
