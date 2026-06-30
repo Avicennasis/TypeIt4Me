@@ -93,5 +93,68 @@ namespace TypeIt4Me.Tests
             // Assert - Should still be the first external window since tracking was stopped
             Assert.Equal(externalWindow1, focusTracker.LastExternalWindowHandle);
         }
+
+        [Fact]
+        public void Constructor_Default_DoesNotThrow()
+        {
+            // Act & Assert
+            var exception = Record.Exception(() =>
+            {
+                using var tracker = new FocusTracker();
+            });
+
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public void Stop_WhenNotStarted_DoesNotThrow()
+        {
+            // Arrange
+            using var focusTracker = new FocusTracker(() => IntPtr.Zero);
+
+            // Act & Assert
+            var exception = Record.Exception(() => focusTracker.Stop());
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public void Dispose_WhenNotStarted_DoesNotThrow()
+        {
+            // Arrange
+            var focusTracker = new FocusTracker(() => IntPtr.Zero);
+
+            // Act & Assert
+            var exception = Record.Exception(() => focusTracker.Dispose());
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public async Task Dispose_PreventsFurtherUpdates()
+        {
+            // Arrange
+            IntPtr myWindow = new IntPtr(123);
+            IntPtr externalWindow1 = new IntPtr(456);
+            IntPtr externalWindow2 = new IntPtr(789);
+            IntPtr currentForeground = externalWindow1;
+
+            var focusTracker = new FocusTracker(() => currentForeground);
+
+            // Act
+            focusTracker.Start(myWindow);
+
+            // Give the loop time to run and capture externalWindow1
+            await Task.Delay(250);
+
+            focusTracker.Dispose();
+
+            // Change the simulated foreground window
+            currentForeground = externalWindow2;
+
+            // Give the loop time if it were still running (which it shouldn't be)
+            await Task.Delay(250);
+
+            // Assert - Should still be the first external window since tracking was disposed
+            Assert.Equal(externalWindow1, focusTracker.LastExternalWindowHandle);
+        }
     }
 }
