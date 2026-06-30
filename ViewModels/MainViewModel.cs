@@ -345,7 +345,11 @@ namespace TypeIt4Me.ViewModels
              _snippetManager.SetPin(ReadOnlySpan<char>.Empty);
              _snippetManager.SaveSnippetsAsync();
              
-             MessageBox.Show("PIN Removed. Snippets are now stored in plain text.", "Security", MessageBoxButton.OK, MessageBoxImage.Information);
+             MessageBox.Show(
+                 "PIN Removed. Snippets are now stored in plain text.",
+                 "Security",
+                 MessageBoxButton.OK,
+                 MessageBoxImage.Information);
         }
 
         public event Action RequestPinSet;
@@ -445,9 +449,11 @@ namespace TypeIt4Me.ViewModels
                     {
                          // We need a simple input dialog. 
                          // Check status: failed? 
+                         string message = "Failed to decrypt snippets. Do you want to try entering a PIN?";
+                         string caption = "Import Failed";
                          var result = MessageBox.Show(
-                             "Failed to decrypt snippets. Do you want to try entering a PIN?",
-                             "Import Failed",
+                             message,
+                             caption,
                              MessageBoxButton.YesNo,
                              MessageBoxImage.Question);
                          if (result == MessageBoxResult.No) break;
@@ -465,7 +471,14 @@ namespace TypeIt4Me.ViewModels
                              try
                              {
                                  success = await _snippetManager.ImportSnippetsAsync(dialog.FileName, inputPin);
-                                 if (success) MessageBox.Show("Import Successful!", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                                 if (success)
+                                 {
+                                     MessageBox.Show(
+                                         "Import Successful!",
+                                         "Import",
+                                         MessageBoxButton.OK,
+                                         MessageBoxImage.Information);
+                                 }
                              }
                              finally
                              {
@@ -480,7 +493,11 @@ namespace TypeIt4Me.ViewModels
                 }
                 else
                 {
-                     MessageBox.Show("Import Successful!", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                     MessageBox.Show(
+                         "Import Successful!",
+                         "Import",
+                         MessageBoxButton.OK,
+                         MessageBoxImage.Information);
                 }
             }
         }
