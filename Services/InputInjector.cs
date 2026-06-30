@@ -84,9 +84,6 @@ namespace TypeIt4Me.Services
             { "F12", 0x7B }
         };
 
-        // Regex to match special commands like {TAB}, {ENTER}, {SLEEP 1500}, etc.
-        private static readonly Regex CommandPattern = new Regex(@"\{([^}]+)\}", RegexOptions.Compiled);
-
         public InputInjector() : this(new WindowsInputSender()) { }
 
         public InputInjector(IInputSender inputSender)
@@ -122,22 +119,38 @@ namespace TypeIt4Me.Services
         private async Task ProcessTextWithCommands(string text)
         {
             int lastIndex = 0;
-            var matches = CommandPattern.Matches(text);
+            int searchIndex = 0;
 
-            foreach (Match match in matches)
+            while (searchIndex < text.Length)
             {
-                // Type any text before this command
-                if (match.Index > lastIndex)
+                int openIndex = text.IndexOf('{', searchIndex);
+                if (openIndex == -1) break;
+
+                int closeIndex = text.IndexOf('}', openIndex + 1);
+                if (closeIndex == -1) break;
+
+                // Skip empty braces `{}` to match original regex behavior `\{([^}]+)\}`
+                if (closeIndex - openIndex > 1)
                 {
-                    var beforeText = text.AsMemory(lastIndex, match.Index - lastIndex);
-                    await TypePlainTextAsync(beforeText);
+                    // Type any text before this command
+                    if (openIndex > lastIndex)
+                    {
+                        var beforeText = text.AsMemory(lastIndex, openIndex - lastIndex);
+                        await TypePlainTextAsync(beforeText);
+                    }
+
+                    // Process the command
+                    string command = text.Substring(openIndex + 1, closeIndex - openIndex - 1).Trim();
+                    await ProcessCommand(command);
+
+                    lastIndex = closeIndex + 1;
+                    searchIndex = lastIndex;
                 }
-
-                // Process the command
-                string command = match.Groups[1].Value.Trim();
-                await ProcessCommand(command);
-
-                lastIndex = match.Index + match.Length;
+                else
+                {
+                    // It was empty `{}`, ignore it as a command, move search past the `{`
+                    searchIndex = openIndex + 1;
+                }
             }
 
             // Type any remaining text after the last command
