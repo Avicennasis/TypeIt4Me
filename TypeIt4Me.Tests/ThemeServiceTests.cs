@@ -63,5 +63,28 @@ namespace TypeIt4Me.Tests
             Assert.NotNull(appliedUri);
             Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/LightTheme.xaml", appliedUri);
         }
+        [Fact]
+        public void Constructor_NullInvokeOnUI_ThrowsArgumentNullException()
+        {
+            // Arrange
+            Action<Action>? invokeOnUI = null;
+            Action<string> applyTheme = (uri) => { };
+
+            // Act & Assert
+            var ex = Assert.Throws<ArgumentNullException>(() => new ThemeService(invokeOnUI!, applyTheme));
+            Assert.Equal("invokeOnUI", ex.ParamName);
+        }
+
+        [Fact]
+        public void Constructor_NullApplyTheme_ThrowsArgumentNullException()
+        {
+            // Arrange
+            Action<Action> invokeOnUI = (action) => action();
+            Action<string>? applyTheme = null;
+
+            // Act & Assert
+            var ex = Assert.Throws<ArgumentNullException>(() => new ThemeService(invokeOnUI, applyTheme!));
+            Assert.Equal("applyTheme", ex.ParamName);
+        }
     }
 }

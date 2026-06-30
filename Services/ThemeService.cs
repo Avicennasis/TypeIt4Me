@@ -21,8 +21,8 @@ namespace TypeIt4Me.Services
 
         internal ThemeService(Action<Action> invokeOnUI, Action<string> applyTheme)
         {
-            _invokeOnUI = invokeOnUI;
-            _applyTheme = applyTheme;
+            _invokeOnUI = invokeOnUI ?? throw new ArgumentNullException(nameof(invokeOnUI));
+            _applyTheme = applyTheme ?? throw new ArgumentNullException(nameof(applyTheme));
         }
 
         public void SetTheme(bool isDark)
