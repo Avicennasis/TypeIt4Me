@@ -307,6 +307,12 @@ namespace TypeIt4Me.Tests
                 Assert.Single(_manager.Snippets);
                 Assert.Equal("enc1", _manager.Snippets[0].Name);
                 Assert.Equal("secret1", _manager.Snippets[0].Content);
+
+                // Verify saved to test file path (app data)
+                string savedContent = await File.ReadAllTextAsync(_tempFile);
+                var savedSnippets = JsonSerializer.Deserialize<List<Snippet>>(savedContent);
+                Assert.NotNull(savedSnippets);
+                Assert.Single(savedSnippets);
             }
             finally
             {
@@ -342,6 +348,10 @@ namespace TypeIt4Me.Tests
                 Assert.Single(_manager.Snippets);
                 Assert.Equal("enc2", _manager.Snippets[0].Name);
                 Assert.Equal("secret2", _manager.Snippets[0].Content);
+
+                // Verify saved to test file path (app data) as encrypted
+                string savedContent = await File.ReadAllTextAsync(_tempFile);
+                Assert.StartsWith("V3|", savedContent);
             }
             finally
             {
@@ -409,6 +419,38 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.False(result);
             Assert.Empty(_manager.Snippets);
+            Assert.Contains(_logger.ErrorLogs, log => log.Message == "Error importing snippets");
+            Assert.NotNull(_logger.ErrorLogs[0].Exception);
+            Assert.IsType<FileNotFoundException>(_logger.ErrorLogs[0].Exception);
+        }
+
+        [Fact]
+        public async Task ImportSnippetsAsync_FileAccessError_LogsErrorAndReturnsFalse()
+        {
+            // Arrange
+            string importFilePath = Path.GetTempFileName();
+            try
+            {
+                await File.WriteAllTextAsync(importFilePath, "[]");
+
+                // Lock the target file so ImportSnippetsAsync fails
+                using (var fs = new FileStream(importFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    // Act
+                    bool result = await _manager.ImportSnippetsAsync(importFilePath);
+
+                    // Assert
+                    Assert.False(result);
+                    Assert.Empty(_manager.Snippets);
+                    Assert.Contains(_logger.ErrorLogs, log => log.Message == "Error importing snippets");
+                    Assert.NotNull(_logger.ErrorLogs[0].Exception);
+                    Assert.True(_logger.ErrorLogs[0].Exception is IOException || _logger.ErrorLogs[0].Exception is UnauthorizedAccessException);
+                }
+            }
+            finally
+            {
+                if (File.Exists(importFilePath)) File.Delete(importFilePath);
+            }
         }
 
         // ===================================================================
