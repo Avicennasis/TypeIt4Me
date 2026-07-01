@@ -147,7 +147,7 @@ namespace TypeIt4Me
             }
             catch (Exception ex)
             {
-                 MessageBox.Show($"Critical Error during startup: {ex.Message}", "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                 MessageBox.Show($"Critical Error during startup: {ex.GetType().FullName}", "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
                  try
                  {
                      Shutdown();

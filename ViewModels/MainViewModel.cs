@@ -203,7 +203,7 @@ namespace TypeIt4Me.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Search error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Search error: {ex.GetType().FullName}");
             }
             finally
             {
