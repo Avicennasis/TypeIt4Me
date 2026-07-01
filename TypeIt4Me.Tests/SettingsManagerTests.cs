@@ -170,5 +170,68 @@ namespace TypeIt4Me.Tests
             Assert.NotNull(logger.LoggedException);
             Assert.True(logger.LoggedException is IOException || logger.LoggedException is UnauthorizedAccessException);
         }
+
+        [Fact]
+        public async Task LoadSettingsAsync_FileNotFound_DoesNotLogError()
+        {
+            // Arrange
+            var logger = new TestLogger();
+            // File does not exist
+            string testPath = Path.Combine(_testDirectory, "non_existent_settings.json");
+            var manager = new TestSettingsManager(logger, testPath);
+
+            // Act
+            await manager.LoadSettingsAsync();
+
+            // Assert
+            Assert.False(logger.ErrorLogged);
+            Assert.Null(logger.LoggedException);
+        }
+
+        [Fact]
+        public async Task LoadSettingsAsync_DirectoryNotFound_DoesNotLogError()
+        {
+            // Arrange
+            var logger = new TestLogger();
+            // Directory does not exist
+            string testPath = Path.Combine(_testDirectory, "NonExistentDir", "settings.json");
+            var manager = new TestSettingsManager(logger, testPath);
+
+            // Act
+            await manager.LoadSettingsAsync();
+
+            // Assert
+            Assert.False(logger.ErrorLogged);
+            Assert.Null(logger.LoggedException);
+        }
+
+        private class ThrowingSettingsManager : SettingsManager
+        {
+            public ThrowingSettingsManager(ILogger logger) : base(logger)
+            {
+            }
+
+            protected override string GetFilePath()
+            {
+                throw new InvalidOperationException("Simulated unexpected error");
+            }
+        }
+
+        [Fact]
+        public async Task LoadSettingsAsync_UnexpectedException_LogsError()
+        {
+            // Arrange
+            var logger = new TestLogger();
+            var manager = new ThrowingSettingsManager(logger);
+
+            // Act
+            await manager.LoadSettingsAsync();
+
+            // Assert
+            Assert.True(logger.ErrorLogged);
+            Assert.Contains("Error loading settings", logger.LastErrorMessage);
+            Assert.NotNull(logger.LoggedException);
+            Assert.IsType<InvalidOperationException>(logger.LoggedException);
+        }
     }
 }
