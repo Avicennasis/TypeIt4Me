@@ -4,16 +4,18 @@ on:
   push:
     tags: ['v*']
 
+permissions: {}
+
 jobs:
   release:
     runs-on: windows-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           dotnet-version: 8.0.x
 
@@ -30,7 +32,7 @@ jobs:
         run: dotnet publish TypeIt4Me.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@7c4723f7a335432393329f8f1c564994ce50185d # v3
         with:
           files: publish/TypeIt4Me.exe
           generate_release_notes: true
