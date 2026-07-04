@@ -32,7 +32,7 @@ jobs:
         run: dotnet publish TypeIt4Me.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@7c4723f7a335432393329f8f1c564994ce50185d # v3
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
         with:
           files: publish/TypeIt4Me.exe
           generate_release_notes: true
