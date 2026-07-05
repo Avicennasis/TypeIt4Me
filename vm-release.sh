@@ -79,19 +79,20 @@ RESPONSE=$(curl -s -X POST \
     "https://api.github.com/repos/$REPO_SLUG/releases" \
     -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\",\"body\":\"Release ${VERSION}\"}")
 
-UPLOAD_URL=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['upload_url'].split('{')[0])" 2>/dev/null)
-RELEASE_URL=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['html_url'])" 2>/dev/null)
+UPLOAD_URL=$(echo "$RESPONSE" | jq -r '.upload_url | split("{")[0]')
+RELEASE_URL=$(echo "$RESPONSE" | jq -r '.html_url')
 
-if [ -z "$UPLOAD_URL" ]; then
+if [ -z "$UPLOAD_URL" ] || [ "$UPLOAD_URL" = "null" ]; then
     fail "Failed to create release. Response: $RESPONSE"
 fi
 
 # Upload exe
-curl -s -X POST \
+UPLOAD_RESPONSE=$(curl -s -X POST \
     -H "Authorization: token $TOKEN" \
     -H "Content-Type: application/octet-stream" \
     "${UPLOAD_URL}?name=TypeIt4Me.exe" \
-    --data-binary @"$REPO_DIR/TypeIt4Me.exe" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  Uploaded: {d[\"name\"]} ({d[\"size\"]//1048576}MB)')"
+    --data-binary @"$REPO_DIR/TypeIt4Me.exe")
+echo "  Uploaded: $(echo "$UPLOAD_RESPONSE" | jq -r '.name') ($(echo "$UPLOAD_RESPONSE" | jq -r '.size / 1048576 | floor')MB)"
 
 ok "GitHub Release created: $RELEASE_URL"
 
