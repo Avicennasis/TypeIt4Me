@@ -367,51 +367,44 @@ namespace TypeIt4Me
         private void MainViewModel_RequestUnlock()
         {
              // Prompt for PIN to unlock
-             if (!string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
-             {
-                 bool authenticated = false;
-
-                 while (!authenticated)
-                 {
-                     var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
-                     if (pinWin.ShowDialog() == true)
-                     {
-                         char[]? pinChars = null;
-                         try
-                         {
-                             pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
-
-                             // Use Salted Check
-                             string hash = Services.CryptoService.HashPin(pinChars.AsSpan(), _settingsManager.Settings.PinSalt);
-                             if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
-                             {
-                                 authenticated = true;
-                                 _mainViewModel.UnlockApp();
-                                 // Ensure PIN is set in manager (for decryption if needed, though usually set on startup)
-                                 _snippetManager.SetPin(pinChars.AsSpan());
-                             }
-                             else
-                             {
-                                 MessageBox.Show("Invalid PIN.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
-                             }
-                         }
-                         finally
-                         {
-                             if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
-                         }
-                     }
-                     else
-                     {
-                         // User cancelled unlock. Keep locked? Or Exit?
-                         // If called from Restore, just keep hidden/locked.
-                         break;
-                     }
-                 }
-             }
-             else
+             if (string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
              {
                  // No PIN set? Just unlock.
                  _mainViewModel.UnlockApp();
+                 return;
+             }
+
+             while (true)
+             {
+                 var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
+                 if (pinWin.ShowDialog() != true)
+                 {
+                     // User cancelled unlock. Keep locked? Or Exit?
+                     // If called from Restore, just keep hidden/locked.
+                     break;
+                 }
+
+                 char[]? pinChars = null;
+                 try
+                 {
+                     pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
+
+                     // Use Salted Check
+                     string hash = Services.CryptoService.HashPin(pinChars.AsSpan(), _settingsManager.Settings.PinSalt);
+                     if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
+                     {
+                         _mainViewModel.UnlockApp();
+                         // Ensure PIN is set in manager (for decryption if needed, though usually set on startup)
+                         _snippetManager.SetPin(pinChars.AsSpan());
+                         break;
+                     }
+
+                     MessageBox.Show("Invalid PIN.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
+                 }
+                 finally
+                 {
+                     if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
+                 }
              }
         }
 
