@@ -220,7 +220,7 @@ namespace TypeIt4Me.ViewModels
                 query = query.Where(s => s.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
                                          (s.Category != null && s.Category.Contains(filter, StringComparison.OrdinalIgnoreCase)));
             }
-            return query.ToList();
+            return query;
         }
 
         private void Snippets_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
