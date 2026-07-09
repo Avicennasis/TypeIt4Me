@@ -10,6 +10,7 @@ namespace TypeIt4Me.Services
     {
         private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { MaxDepth = 3 };
 
         public AppSettings Settings { get; private set; } = new AppSettings();
 
@@ -33,7 +34,7 @@ namespace TypeIt4Me.Services
                 try
                 {
                     using FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
-                    var loaded = await JsonSerializer.DeserializeAsync<AppSettings>(stream);
+                    var loaded = await JsonSerializer.DeserializeAsync<AppSettings>(stream, _jsonOptions);
                     if (loaded != null)
                     {
                         Settings.AlwaysOnTop = loaded.AlwaysOnTop;
@@ -76,7 +77,7 @@ namespace TypeIt4Me.Services
                 // Atomic Save: Write to .tmp, then Move to .json
                 using (FileStream stream = File.Create(tempPath))
                 {
-                    await JsonSerializer.SerializeAsync(stream, Settings);
+                    await JsonSerializer.SerializeAsync(stream, Settings, _jsonOptions);
                 }
                 
                 // Move is atomic on same volume
