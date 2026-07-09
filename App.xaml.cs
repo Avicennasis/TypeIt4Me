@@ -342,8 +342,16 @@ namespace TypeIt4Me
             var pinWin = new PinEntryWindow("Enter PIN for Import");
             if (pinWin.ShowDialog() == true)
             {
-                char[]? pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
-                callback(pinChars);
+                char[]? pinChars = null;
+                try
+                {
+                    pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
+                    callback(pinChars);
+                }
+                finally
+                {
+                    if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
+                }
             }
             else
             {
