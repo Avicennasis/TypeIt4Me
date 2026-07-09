@@ -12,6 +12,11 @@ namespace TypeIt4Me.Services
         private readonly object _syncLock = new object();
         private Task _pendingWrite = Task.CompletedTask;
 
+        internal FileLogger(string logPath)
+        {
+            _logPath = logPath;
+        }
+
         public FileLogger()
         {
             _logPath = Constants.GetAppDataPath("error.log");
