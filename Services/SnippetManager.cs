@@ -120,20 +120,25 @@ namespace TypeIt4Me.Services
                 string path = GetFilePath();
                 tempPath = path + ".tmp";
 
-                await _fileLock.WaitAsync();
+                var snippetsSnapshot = new List<Snippet>(Snippets);
 
-                string json = JsonSerializer.Serialize(Snippets);
+                await _fileLock.WaitAsync();
 
                 if (_currentPin != null && _currentPin.Length > 0)
                 {
                     // Encrypt with V3 (AES-256 + HMAC)
-                    string encrypted = await Task.Run(() => CryptoService.Encrypt(json, _currentPin));
+                    string encrypted = await Task.Run(() =>
+                    {
+                        string json = JsonSerializer.Serialize(snippetsSnapshot);
+                        return CryptoService.Encrypt(json, _currentPin);
+                    });
                     await File.WriteAllTextAsync(tempPath, encrypted);
                 }
                 else
                 {
-                    // Plain Text (no encryption)
-                    await File.WriteAllTextAsync(tempPath, json);
+                    // Plain Text (no encryption) - serialize asynchronously to avoid allocating large strings
+                    using var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous);
+                    await JsonSerializer.SerializeAsync(fs, snippetsSnapshot);
                 }
 
                 // Atomic move operation
@@ -166,19 +171,24 @@ namespace TypeIt4Me.Services
         
         public async Task ExportSnippetsAsync(string filePath)
         {
+             var snippetsSnapshot = new List<Snippet>(Snippets);
              try 
              {
                  await _fileLock.WaitAsync();
-                 string json = JsonSerializer.Serialize(Snippets);
                  
                  if (_currentPin != null && _currentPin.Length > 0)
                  {
-                     string encrypted = CryptoService.Encrypt(json, _currentPin);
+                     string encrypted = await Task.Run(() =>
+                     {
+                         string json = JsonSerializer.Serialize(snippetsSnapshot);
+                         return CryptoService.Encrypt(json, _currentPin);
+                     });
                      await File.WriteAllTextAsync(filePath, encrypted);
                  }
                  else
                  {
-                     await File.WriteAllTextAsync(filePath, json);
+                     using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous);
+                     await JsonSerializer.SerializeAsync(fs, snippetsSnapshot);
                  }
              }
              finally
