@@ -33,12 +33,14 @@ namespace TypeIt4Me.Tests
         }
 
         private readonly string _tempFile;
+        private readonly string _importFile;
         private readonly FakeLogger _logger;
         private readonly TestableSnippetManager _manager;
 
         public SnippetManagerTests()
         {
             _tempFile = Path.GetTempFileName();
+            _importFile = Path.GetTempFileName();
             _logger = new FakeLogger();
             _manager = new TestableSnippetManager(_logger, _tempFile);
         }
@@ -48,6 +50,10 @@ namespace TypeIt4Me.Tests
             if (File.Exists(_tempFile))
             {
                 File.Delete(_tempFile);
+            }
+            if (File.Exists(_importFile))
+            {
+                File.Delete(_importFile);
             }
         }
 
@@ -65,31 +71,22 @@ namespace TypeIt4Me.Tests
             var snippet = new Snippet { Name = "Test", Content = "Content", Id = Guid.NewGuid() };
             manager.Snippets.Add(snippet);
 
-            string tempFile = Path.GetTempFileName();
+            // Act
+            await manager.ExportSnippetsAsync(_importFile);
 
-            try
-            {
-                // Act
-                await manager.ExportSnippetsAsync(tempFile);
+            // Assert
+            string fileContent = await File.ReadAllTextAsync(_importFile);
+            var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
 
-                // Assert
-                string fileContent = await File.ReadAllTextAsync(tempFile);
-                var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
+            Assert.NotNull(deserialized);
+            Assert.Single(deserialized);
+            Assert.Equal("Test", deserialized[0].Name);
+            Assert.Equal("Content", deserialized[0].Content);
+            Assert.Equal(snippet.Id, deserialized[0].Id);
 
-                Assert.NotNull(deserialized);
-                Assert.Single(deserialized);
-                Assert.Equal("Test", deserialized[0].Name);
-                Assert.Equal("Content", deserialized[0].Content);
-                Assert.Equal(snippet.Id, deserialized[0].Id);
+            // Ensure it's not encrypted (doesn't start with V3|)
+            Assert.False(fileContent.StartsWith("V3|"));
 
-                // Ensure it's not encrypted (doesn't start with V3|)
-                Assert.False(fileContent.StartsWith("V3|"));
-            }
-            finally
-            {
-                if (File.Exists(tempFile))
-                    File.Delete(tempFile);
-            }
         }
 
         [Fact]
@@ -104,35 +101,26 @@ namespace TypeIt4Me.Tests
 
             manager.SetPin("1234".AsSpan());
 
-            string tempFile = Path.GetTempFileName();
+            // Act
+            await manager.ExportSnippetsAsync(_importFile);
 
-            try
-            {
-                // Act
-                await manager.ExportSnippetsAsync(tempFile);
+            // Assert
+            string fileContent = await File.ReadAllTextAsync(_importFile);
 
-                // Assert
-                string fileContent = await File.ReadAllTextAsync(tempFile);
+            // Should be encrypted
+            Assert.True(fileContent.StartsWith("V3|"));
 
-                // Should be encrypted
-                Assert.True(fileContent.StartsWith("V3|"));
+            // Decrypt manually
+            string decrypted = CryptoService.Decrypt(fileContent, "1234".AsSpan());
+            Assert.NotNull(decrypted);
 
-                // Decrypt manually
-                string decrypted = CryptoService.Decrypt(fileContent, "1234".AsSpan());
-                Assert.NotNull(decrypted);
+            var deserialized = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
+            Assert.NotNull(deserialized);
+            Assert.Single(deserialized);
+            Assert.Equal("Secret", deserialized[0].Name);
+            Assert.Equal("Confidential", deserialized[0].Content);
+            Assert.Equal(snippet.Id, deserialized[0].Id);
 
-                var deserialized = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
-                Assert.NotNull(deserialized);
-                Assert.Single(deserialized);
-                Assert.Equal("Secret", deserialized[0].Name);
-                Assert.Equal("Confidential", deserialized[0].Content);
-                Assert.Equal(snippet.Id, deserialized[0].Id);
-            }
-            finally
-            {
-                if (File.Exists(tempFile))
-                    File.Delete(tempFile);
-            }
         }
 
         [Fact]
@@ -145,30 +133,21 @@ namespace TypeIt4Me.Tests
             var snippet = new Snippet { Name = "OverwriteTest", Content = "NewData" };
             manager.Snippets.Add(snippet);
 
-            string tempFile = Path.GetTempFileName();
-            await File.WriteAllTextAsync(tempFile, "Old Garbage Data");
+            await File.WriteAllTextAsync(_importFile, "Old Garbage Data");
+            // Act
+            await manager.ExportSnippetsAsync(_importFile);
 
-            try
-            {
-                // Act
-                await manager.ExportSnippetsAsync(tempFile);
+            // Assert
+            string fileContent = await File.ReadAllTextAsync(_importFile);
+            var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
 
-                // Assert
-                string fileContent = await File.ReadAllTextAsync(tempFile);
-                var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
+            Assert.NotNull(deserialized);
+            Assert.Single(deserialized);
+            Assert.Equal("OverwriteTest", deserialized[0].Name);
+            Assert.Equal("NewData", deserialized[0].Content);
 
-                Assert.NotNull(deserialized);
-                Assert.Single(deserialized);
-                Assert.Equal("OverwriteTest", deserialized[0].Name);
-                Assert.Equal("NewData", deserialized[0].Content);
+            Assert.DoesNotContain("Old Garbage Data", fileContent);
 
-                Assert.DoesNotContain("Old Garbage Data", fileContent);
-            }
-            finally
-            {
-                if (File.Exists(tempFile))
-                    File.Delete(tempFile);
-            }
         }
 
 
@@ -182,30 +161,21 @@ namespace TypeIt4Me.Tests
             var snippet = new Snippet { Name = "Test", Content = "Content", Id = Guid.NewGuid() };
             manager.Snippets.Add(snippet);
 
-            string tempFile = Path.GetTempFileName();
-
-            try
+            // Lock the file to cause an IOException
+            using (var stream = new FileStream(_importFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
             {
-                // Lock the file to cause an IOException
-                using (var stream = new FileStream(tempFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
-                {
-                    // Act & Assert
-                    await Assert.ThrowsAnyAsync<IOException>(() => manager.ExportSnippetsAsync(tempFile));
-                }
-
-                // Verify lock was released by trying again
-                await manager.ExportSnippetsAsync(tempFile);
-
-                string fileContent = await File.ReadAllTextAsync(tempFile);
-                var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
-                Assert.NotNull(deserialized);
-                Assert.Single(deserialized);
+                // Act & Assert
+                await Assert.ThrowsAnyAsync<IOException>(() => manager.ExportSnippetsAsync(_importFile));
             }
-            finally
-            {
-                if (File.Exists(tempFile))
-                    File.Delete(tempFile);
-            }
+
+            // Verify lock was released by trying again
+            await manager.ExportSnippetsAsync(_importFile);
+
+            string fileContent = await File.ReadAllTextAsync(_importFile);
+            var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
+            Assert.NotNull(deserialized);
+            Assert.Single(deserialized);
+
         }
 
         [Fact]
@@ -215,25 +185,16 @@ namespace TypeIt4Me.Tests
             var logger = new FakeLogger();
             var manager = new SnippetManager(logger);
 
-            string tempFile = Path.GetTempFileName();
+            // Act
+            await manager.ExportSnippetsAsync(_importFile);
 
-            try
-            {
-                // Act
-                await manager.ExportSnippetsAsync(tempFile);
+            // Assert
+            string fileContent = await File.ReadAllTextAsync(_importFile);
+            var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
 
-                // Assert
-                string fileContent = await File.ReadAllTextAsync(tempFile);
-                var deserialized = JsonSerializer.Deserialize<List<Snippet>>(fileContent);
+            Assert.NotNull(deserialized);
+            Assert.Empty(deserialized);
 
-                Assert.NotNull(deserialized);
-                Assert.Empty(deserialized);
-            }
-            finally
-            {
-                if (File.Exists(tempFile))
-                    File.Delete(tempFile);
-            }
         }
 
         // ===================================================================
@@ -250,36 +211,29 @@ namespace TypeIt4Me.Tests
                 new Snippet { Id = Guid.NewGuid(), Name = "test2", Content = "content2" }
             };
             string json = JsonSerializer.Serialize(snippets);
-            string importFilePath = Path.GetTempFileName();
-            try
-            {
-                await File.WriteAllTextAsync(importFilePath, json);
+            await File.WriteAllTextAsync(_importFile, json);
 
-                // Act
-                bool result = await _manager.ImportSnippetsAsync(importFilePath);
+            // Act
+            bool result = await _manager.ImportSnippetsAsync(_importFile);
 
-                // Assert
-                Assert.True(result);
-                Assert.Equal(2, _manager.Snippets.Count);
+            // Assert
+            Assert.True(result);
+            Assert.Equal(2, _manager.Snippets.Count);
 
-                // Verify IDs are regenerated
-                Assert.NotEqual(snippets[0].Id, _manager.Snippets[0].Id);
-                Assert.NotEqual(snippets[1].Id, _manager.Snippets[1].Id);
+            // Verify IDs are regenerated
+            Assert.NotEqual(snippets[0].Id, _manager.Snippets[0].Id);
+            Assert.NotEqual(snippets[1].Id, _manager.Snippets[1].Id);
 
-                // Verify content
-                Assert.Equal("test1", _manager.Snippets[0].Name);
-                Assert.Equal("content1", _manager.Snippets[0].Content);
+            // Verify content
+            Assert.Equal("test1", _manager.Snippets[0].Name);
+            Assert.Equal("content1", _manager.Snippets[0].Content);
 
-                // Verify saved to test file path (app data)
-                string savedContent = await File.ReadAllTextAsync(_tempFile);
-                var savedSnippets = JsonSerializer.Deserialize<List<Snippet>>(savedContent);
-                Assert.NotNull(savedSnippets);
-                Assert.Equal(2, savedSnippets.Count);
-            }
-            finally
-            {
-                if (File.Exists(importFilePath)) File.Delete(importFilePath);
-            }
+            // Verify saved to test file path (app data)
+            string savedContent = await File.ReadAllTextAsync(_tempFile);
+            var savedSnippets = JsonSerializer.Deserialize<List<Snippet>>(savedContent);
+            Assert.NotNull(savedSnippets);
+            Assert.Equal(2, savedSnippets.Count);
+
         }
 
         [Fact]
@@ -294,30 +248,23 @@ namespace TypeIt4Me.Tests
             string pin = "mysecretpin";
             string encrypted = CryptoService.Encrypt(json, pin);
 
-            string importFilePath = Path.GetTempFileName();
-            try
-            {
-                await File.WriteAllTextAsync(importFilePath, encrypted);
+            await File.WriteAllTextAsync(_importFile, encrypted);
 
-                // Act
-                bool result = await _manager.ImportSnippetsAsync(importFilePath, pin.ToCharArray());
+            // Act
+            bool result = await _manager.ImportSnippetsAsync(_importFile, pin.ToCharArray());
 
-                // Assert
-                Assert.True(result);
-                Assert.Single(_manager.Snippets);
-                Assert.Equal("enc1", _manager.Snippets[0].Name);
-                Assert.Equal("secret1", _manager.Snippets[0].Content);
+            // Assert
+            Assert.True(result);
+            Assert.Single(_manager.Snippets);
+            Assert.Equal("enc1", _manager.Snippets[0].Name);
+            Assert.Equal("secret1", _manager.Snippets[0].Content);
 
-                // Verify saved to test file path (app data)
-                string savedContent = await File.ReadAllTextAsync(_tempFile);
-                var savedSnippets = JsonSerializer.Deserialize<List<Snippet>>(savedContent);
-                Assert.NotNull(savedSnippets);
-                Assert.Single(savedSnippets);
-            }
-            finally
-            {
-                if (File.Exists(importFilePath)) File.Delete(importFilePath);
-            }
+            // Verify saved to test file path (app data)
+            string savedContent = await File.ReadAllTextAsync(_tempFile);
+            var savedSnippets = JsonSerializer.Deserialize<List<Snippet>>(savedContent);
+            Assert.NotNull(savedSnippets);
+            Assert.Single(savedSnippets);
+
         }
 
         [Fact]
@@ -332,53 +279,39 @@ namespace TypeIt4Me.Tests
             string sessionPin = "sessionpin";
             string encrypted = CryptoService.Encrypt(json, sessionPin);
 
-            string importFilePath = Path.GetTempFileName();
-            try
-            {
-                await File.WriteAllTextAsync(importFilePath, encrypted);
+            await File.WriteAllTextAsync(_importFile, encrypted);
 
-                // Set the session PIN on the manager
-                _manager.SetPin(sessionPin.AsSpan());
+            // Set the session PIN on the manager
+            _manager.SetPin(sessionPin.AsSpan());
 
-                // Act - import without explicit PIN
-                bool result = await _manager.ImportSnippetsAsync(importFilePath);
+            // Act - import without explicit PIN
+            bool result = await _manager.ImportSnippetsAsync(_importFile);
 
-                // Assert
-                Assert.True(result);
-                Assert.Single(_manager.Snippets);
-                Assert.Equal("enc2", _manager.Snippets[0].Name);
-                Assert.Equal("secret2", _manager.Snippets[0].Content);
+            // Assert
+            Assert.True(result);
+            Assert.Single(_manager.Snippets);
+            Assert.Equal("enc2", _manager.Snippets[0].Name);
+            Assert.Equal("secret2", _manager.Snippets[0].Content);
 
-                // Verify saved to test file path (app data) as encrypted
-                string savedContent = await File.ReadAllTextAsync(_tempFile);
-                Assert.StartsWith("V3|", savedContent);
-            }
-            finally
-            {
-                if (File.Exists(importFilePath)) File.Delete(importFilePath);
-            }
+            // Verify saved to test file path (app data) as encrypted
+            string savedContent = await File.ReadAllTextAsync(_tempFile);
+            Assert.StartsWith("V3|", savedContent);
+
         }
 
         [Fact]
         public async Task ImportSnippetsAsync_InvalidJson_ReturnsFalse()
         {
             // Arrange
-            string importFilePath = Path.GetTempFileName();
-            try
-            {
-                await File.WriteAllTextAsync(importFilePath, "{ not valid json ]");
+            await File.WriteAllTextAsync(_importFile, "{ not valid json ]");
 
-                // Act
-                bool result = await _manager.ImportSnippetsAsync(importFilePath);
+            // Act
+            bool result = await _manager.ImportSnippetsAsync(_importFile);
 
-                // Assert
-                Assert.False(result);
-                Assert.Empty(_manager.Snippets);
-            }
-            finally
-            {
-                if (File.Exists(importFilePath)) File.Delete(importFilePath);
-            }
+            // Assert
+            Assert.False(result);
+            Assert.Empty(_manager.Snippets);
+
         }
 
         [Fact]
@@ -392,22 +325,15 @@ namespace TypeIt4Me.Tests
             string json = JsonSerializer.Serialize(snippets);
             string encrypted = CryptoService.Encrypt(json, "correctpin");
 
-            string importFilePath = Path.GetTempFileName();
-            try
-            {
-                await File.WriteAllTextAsync(importFilePath, encrypted);
+            await File.WriteAllTextAsync(_importFile, encrypted);
 
-                // Act - try with wrong PIN
-                bool result = await _manager.ImportSnippetsAsync(importFilePath, "wrongpin".ToCharArray());
+            // Act - try with wrong PIN
+            bool result = await _manager.ImportSnippetsAsync(_importFile, "wrongpin".ToCharArray());
 
-                // Assert
-                Assert.False(result);
-                Assert.Empty(_manager.Snippets);
-            }
-            finally
-            {
-                if (File.Exists(importFilePath)) File.Delete(importFilePath);
-            }
+            // Assert
+            Assert.False(result);
+            Assert.Empty(_manager.Snippets);
+
         }
 
         [Fact]
@@ -428,29 +354,22 @@ namespace TypeIt4Me.Tests
         public async Task ImportSnippetsAsync_FileAccessError_LogsErrorAndReturnsFalse()
         {
             // Arrange
-            string importFilePath = Path.GetTempFileName();
-            try
-            {
-                await File.WriteAllTextAsync(importFilePath, "[]");
+            await File.WriteAllTextAsync(_importFile, "[]");
 
-                // Lock the target file so ImportSnippetsAsync fails
-                using (var fs = new FileStream(importFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-                {
-                    // Act
-                    bool result = await _manager.ImportSnippetsAsync(importFilePath);
-
-                    // Assert
-                    Assert.False(result);
-                    Assert.Empty(_manager.Snippets);
-                    Assert.Contains(_logger.ErrorLogs, log => log.Message == "Error importing snippets");
-                    Assert.NotNull(_logger.ErrorLogs[0].Exception);
-                    Assert.True(_logger.ErrorLogs[0].Exception is IOException || _logger.ErrorLogs[0].Exception is UnauthorizedAccessException);
-                }
-            }
-            finally
+            // Lock the target file so ImportSnippetsAsync fails
+            using (var fs = new FileStream(_importFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
-                if (File.Exists(importFilePath)) File.Delete(importFilePath);
+                // Act
+                bool result = await _manager.ImportSnippetsAsync(_importFile);
+
+                // Assert
+                Assert.False(result);
+                Assert.Empty(_manager.Snippets);
+                Assert.Contains(_logger.ErrorLogs, log => log.Message == "Error importing snippets");
+                Assert.NotNull(_logger.ErrorLogs[0].Exception);
+                Assert.True(_logger.ErrorLogs[0].Exception is IOException || _logger.ErrorLogs[0].Exception is UnauthorizedAccessException);
             }
+
         }
 
         // ===================================================================
@@ -462,12 +381,11 @@ namespace TypeIt4Me.Tests
         {
             // Arrange
             var logger = new MockLogger();
-            string tempFile = Path.GetTempFileName();
 
             // Ensure the temporary file exists before trying to lock it
-            await File.WriteAllTextAsync(tempFile, "[]");
+            await File.WriteAllTextAsync(_importFile, "[]");
 
-            var snippetManager = new TestableSnippetManager(logger, tempFile);
+            var snippetManager = new TestableSnippetManager(logger, _importFile);
             var snippet = new Snippet { Name = "Test" };
 
             var tcs = new TaskCompletionSource<bool>();
@@ -480,28 +398,19 @@ namespace TypeIt4Me.Tests
                 }
             };
 
-            try
+            // Lock the target file so SaveSnippetsAsync fails
+            using (var fs = new FileStream(_importFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
-                // Lock the target file so SaveSnippetsAsync fails
-                using (var fs = new FileStream(tempFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-                {
-                    // Act
-                    snippetManager.AddSnippet(snippet);
+                // Act
+                snippetManager.AddSnippet(snippet);
 
-                    // Assert
-                    var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
-                    Assert.Equal(tcs.Task, completedTask);
-                }
+                // Assert
+                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
+                Assert.Equal(tcs.Task, completedTask);
+            }
 
-                Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after AddSnippet");
-            }
-            finally
-            {
-                if (File.Exists(tempFile))
-                {
-                    File.Delete(tempFile);
-                }
-            }
+            Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after AddSnippet");
+
         }
 
         [Fact]
@@ -509,12 +418,11 @@ namespace TypeIt4Me.Tests
         {
             // Arrange
             var logger = new MockLogger();
-            string tempFile = Path.GetTempFileName();
 
             // Ensure the temporary file exists before trying to lock it
-            await File.WriteAllTextAsync(tempFile, "[]");
+            await File.WriteAllTextAsync(_importFile, "[]");
 
-            var snippetManager = new TestableSnippetManager(logger, tempFile);
+            var snippetManager = new TestableSnippetManager(logger, _importFile);
             var snippet = new Snippet { Name = "Test" };
             snippetManager.Snippets.Add(snippet); // Add directly to bypass AddSnippet's background task
 
@@ -528,28 +436,19 @@ namespace TypeIt4Me.Tests
                 }
             };
 
-            try
+            // Lock the target file so SaveSnippetsAsync fails
+            using (var fs = new FileStream(_importFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
-                // Lock the target file so SaveSnippetsAsync fails
-                using (var fs = new FileStream(tempFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-                {
-                    // Act
-                    snippetManager.RemoveSnippet(snippet);
+                // Act
+                snippetManager.RemoveSnippet(snippet);
 
-                    // Assert
-                    var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
-                    Assert.Equal(tcs.Task, completedTask);
-                }
+                // Assert
+                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
+                Assert.Equal(tcs.Task, completedTask);
+            }
 
-                Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after RemoveSnippet");
-            }
-            finally
-            {
-                if (File.Exists(tempFile))
-                {
-                    File.Delete(tempFile);
-                }
-            }
+            Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after RemoveSnippet");
+
         }
     }
 }
