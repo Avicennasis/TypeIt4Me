@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TypeIt4Me.Services
@@ -84,9 +83,6 @@ namespace TypeIt4Me.Services
             { "F12", 0x7B }
         };
 
-        // Regex to match special commands like {TAB}, {ENTER}, {SLEEP 1500}, etc.
-        private static readonly Regex CommandPattern = new Regex(@"\{([^}]+)\}", RegexOptions.Compiled);
-
         public InputInjector() : this(new WindowsInputSender()) { }
 
         public InputInjector(IInputSender inputSender)
@@ -122,22 +118,39 @@ namespace TypeIt4Me.Services
         private async Task ProcessTextWithCommands(string text)
         {
             int lastIndex = 0;
-            var matches = CommandPattern.Matches(text);
+            int currentIndex = 0;
 
-            foreach (Match match in matches)
+            while (currentIndex < text.Length)
             {
-                // Type any text before this command
-                if (match.Index > lastIndex)
+                int openBraceIndex = text.IndexOf('{', currentIndex);
+                if (openBraceIndex == -1)
+                    break;
+
+                int closeBraceIndex = text.IndexOf('}', openBraceIndex + 1);
+                if (closeBraceIndex == -1)
+                    break;
+
+                if (closeBraceIndex == openBraceIndex + 1)
                 {
-                    var beforeText = text.AsMemory(lastIndex, match.Index - lastIndex);
+                    // Empty braces "{}" - Regex [^}]+ requires at least 1 char. Skip this open brace.
+                    currentIndex = openBraceIndex + 1;
+                    continue;
+                }
+
+                // Type any text before this command
+                if (openBraceIndex > lastIndex)
+                {
+                    var beforeText = text.AsMemory(lastIndex, openBraceIndex - lastIndex);
                     await TypePlainTextAsync(beforeText);
                 }
 
                 // Process the command
-                string command = match.Groups[1].Value.Trim();
+                var commandMemory = text.AsMemory(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1);
+                string command = commandMemory.ToString().Trim();
                 await ProcessCommand(command);
 
-                lastIndex = match.Index + match.Length;
+                lastIndex = closeBraceIndex + 1;
+                currentIndex = lastIndex;
             }
 
             // Type any remaining text after the last command
