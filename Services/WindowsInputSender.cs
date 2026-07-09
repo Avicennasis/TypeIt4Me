@@ -26,20 +26,7 @@ namespace TypeIt4Me.Services
             for (int i = 0; i < ModifierKeys.Length; i++)
             {
                 // We don't check state; just spam KeyUp. It's safe and robust.
-                inputs[i] = new NativeMethods.INPUT
-                {
-                    type = NativeMethods.INPUT_KEYBOARD,
-                    U = new NativeMethods.InputUnion
-                    {
-                        ki = new NativeMethods.KEYBDINPUT
-                        {
-                            wVk = ModifierKeys[i],
-                            dwFlags = NativeMethods.KEYEVENTF_KEYUP,
-                            time = 0,
-                            dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                        }
-                    }
-                };
+                inputs[i] = CreateKeyboardInput(ModifierKeys[i], NativeMethods.KEYEVENTF_KEYUP);
             }
             NativeMethods.SendInput((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
         }
@@ -49,42 +36,18 @@ namespace TypeIt4Me.Services
             Span<NativeMethods.INPUT> inputs = stackalloc NativeMethods.INPUT[2];
 
             // Key Down
-            inputs[0] = new NativeMethods.INPUT
-            {
-                type = NativeMethods.INPUT_KEYBOARD,
-                U = new NativeMethods.InputUnion
-                {
-                    ki = new NativeMethods.KEYBDINPUT
-                    {
-                        wVk = vkCode,
-                        dwFlags = 0,
-                        time = 0,
-                        dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                    }
-                }
-            };
+            inputs[0] = CreateKeyboardInput(vkCode, 0);
 
             // Key Up
-            inputs[1] = new NativeMethods.INPUT
-            {
-                type = NativeMethods.INPUT_KEYBOARD,
-                U = new NativeMethods.InputUnion
-                {
-                    ki = new NativeMethods.KEYBDINPUT
-                    {
-                        wVk = vkCode,
-                        dwFlags = NativeMethods.KEYEVENTF_KEYUP,
-                        time = 0,
-                        dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                    }
-                }
-            };
+            inputs[1] = CreateKeyboardInput(vkCode, NativeMethods.KEYEVENTF_KEYUP);
 
             NativeMethods.SendInput((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
         }
 
         public void SendInputBatch(ReadOnlySpan<char> text)
         {
+            if (text.IsEmpty) return;
+
             var pool = ArrayPool<NativeMethods.INPUT>.Shared;
             var inputs = pool.Rent(text.Length * 2);
 
@@ -106,69 +69,16 @@ namespace TypeIt4Me.Services
                     if (c == '\n')
                     {
                         // Send Enter key (VK_RETURN = 0x0D) as a virtual key press
-                        inputs[count++] = new NativeMethods.INPUT
-                        {
-                            type = NativeMethods.INPUT_KEYBOARD,
-                            U = new NativeMethods.InputUnion
-                            {
-                                ki = new NativeMethods.KEYBDINPUT
-                                {
-                                    wVk = 0x0D, // VK_RETURN
-                                    dwFlags = 0,
-                                    time = 0,
-                                    dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                                }
-                            }
-                        };
-
-                        inputs[count++] = new NativeMethods.INPUT
-                        {
-                            type = NativeMethods.INPUT_KEYBOARD,
-                            U = new NativeMethods.InputUnion
-                            {
-                                ki = new NativeMethods.KEYBDINPUT
-                                {
-                                    wVk = 0x0D, // VK_RETURN
-                                    dwFlags = NativeMethods.KEYEVENTF_KEYUP,
-                                    time = 0,
-                                    dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                                }
-                            }
-                        };
+                        inputs[count++] = CreateKeyboardInput(0x0D, 0);
+                        inputs[count++] = CreateKeyboardInput(0x0D, NativeMethods.KEYEVENTF_KEYUP);
                         continue;
                     }
 
                     // Key Down (Unicode character)
-                    inputs[count++] = new NativeMethods.INPUT
-                    {
-                        type = NativeMethods.INPUT_KEYBOARD,
-                        U = new NativeMethods.InputUnion
-                        {
-                            ki = new NativeMethods.KEYBDINPUT
-                            {
-                                wScan = c,
-                                dwFlags = NativeMethods.KEYEVENTF_UNICODE,
-                                time = 0,
-                                dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                            }
-                        }
-                    };
+                    inputs[count++] = CreateUnicodeInput(c, NativeMethods.KEYEVENTF_UNICODE);
 
                     // Key Up
-                    inputs[count++] = new NativeMethods.INPUT
-                    {
-                        type = NativeMethods.INPUT_KEYBOARD,
-                        U = new NativeMethods.InputUnion
-                        {
-                            ki = new NativeMethods.KEYBDINPUT
-                            {
-                                wScan = c,
-                                dwFlags = NativeMethods.KEYEVENTF_UNICODE | NativeMethods.KEYEVENTF_KEYUP,
-                                time = 0,
-                                dwExtraInfo = NativeMethods.GetMessageExtraInfo()
-                            }
-                        }
-                    };
+                    inputs[count++] = CreateUnicodeInput(c, NativeMethods.KEYEVENTF_UNICODE | NativeMethods.KEYEVENTF_KEYUP);
                 }
 
                 if (count > 0)
@@ -180,6 +90,42 @@ namespace TypeIt4Me.Services
             {
                 pool.Return(inputs);
             }
+        }
+
+        private static NativeMethods.INPUT CreateKeyboardInput(ushort vkCode, uint flags)
+        {
+            return new NativeMethods.INPUT
+            {
+                type = NativeMethods.INPUT_KEYBOARD,
+                U = new NativeMethods.InputUnion
+                {
+                    ki = new NativeMethods.KEYBDINPUT
+                    {
+                        wVk = vkCode,
+                        dwFlags = flags,
+                        time = 0,
+                        dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                    }
+                }
+            };
+        }
+
+        private static NativeMethods.INPUT CreateUnicodeInput(char character, uint flags)
+        {
+            return new NativeMethods.INPUT
+            {
+                type = NativeMethods.INPUT_KEYBOARD,
+                U = new NativeMethods.InputUnion
+                {
+                    ki = new NativeMethods.KEYBDINPUT
+                    {
+                        wScan = character,
+                        dwFlags = flags,
+                        time = 0,
+                        dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                    }
+                }
+            };
         }
     }
 }
