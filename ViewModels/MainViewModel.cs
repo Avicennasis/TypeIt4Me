@@ -433,73 +433,61 @@ namespace TypeIt4Me.ViewModels
         [RelayCommand]
         private async Task ImportSnippets()
         {
-             var dialog = new Microsoft.Win32.OpenFileDialog
+            var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Filter = "JSON Files (*.json)|*.json",
                 DefaultExt = ".json"
             };
 
-            if (dialog.ShowDialog() == true)
+            if (dialog.ShowDialog() != true)
+                return;
+
+            bool success = await _snippetManager.ImportSnippetsAsync(dialog.FileName);
+            if (success)
             {
-                bool success = await _snippetManager.ImportSnippetsAsync(dialog.FileName);
-                if (!success)
+                ShowImportSuccessfulMessage();
+                return;
+            }
+
+            await TryImportWithPinAsync(dialog.FileName);
+        }
+
+        private async Task TryImportWithPinAsync(string fileName)
+        {
+            bool success = false;
+            while (!success)
+            {
+                string message = "Failed to decrypt snippets. Do you want to try entering a PIN?";
+                string caption = "Import Failed";
+                var result = MessageBox.Show(message, caption, MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.No)
+                    break;
+
+                char[]? inputPin = null;
+                RequestPinInput?.Invoke(pin => inputPin = pin);
+
+                if (inputPin == null || inputPin.Length == 0)
+                    break;
+
+                try
                 {
-                    // Prompt for PIN
-                    while (!success)
+                    success = await _snippetManager.ImportSnippetsAsync(fileName, inputPin);
+                    if (success)
                     {
-                         // We need a simple input dialog. 
-                         // Check status: failed? 
-                         string message = "Failed to decrypt snippets. Do you want to try entering a PIN?";
-                         string caption = "Import Failed";
-                         var result = MessageBox.Show(
-                             message,
-                             caption,
-                             MessageBoxButton.YesNo,
-                             MessageBoxImage.Question);
-                         if (result == MessageBoxResult.No) break;
-                         
-                         // Request PIN from View
-                         // We can reuse RequestPinSet or create a new event.
-                         // Let's create a generic RequestPinInput event that returns a string (via args or callback).
-                         // Simplified: We'll misuse the SettingsManager flow or just add a direct callback action.
-                         
-                         char[]? inputPin = null;
-                         RequestPinInput?.Invoke((pin) => inputPin = pin);
-                         
-                         if (inputPin != null && inputPin.Length > 0)
-                         {
-                             try
-                             {
-                                 success = await _snippetManager.ImportSnippetsAsync(dialog.FileName, inputPin);
-                                 if (success)
-                                 {
-                                     MessageBox.Show(
-                                         "Import Successful!",
-                                         "Import",
-                                         MessageBoxButton.OK,
-                                         MessageBoxImage.Information);
-                                 }
-                             }
-                             finally
-                             {
-                                 Array.Clear(inputPin, 0, inputPin.Length);
-                             }
-                         }
-                         else
-                         {
-                             break;
-                         }
+                        ShowImportSuccessfulMessage();
                     }
                 }
-                else
+                finally
                 {
-                     MessageBox.Show(
-                         "Import Successful!",
-                         "Import",
-                         MessageBoxButton.OK,
-                         MessageBoxImage.Information);
+                    Array.Clear(inputPin, 0, inputPin.Length);
                 }
             }
+        }
+
+        private void ShowImportSuccessfulMessage()
+        {
+            MessageBox.Show("Import Successful!", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         
         public event Action<Action<char[]?>> RequestPinInput;
