@@ -6,6 +6,28 @@ namespace TypeIt4Me.Services
 {
     public class WindowsInputSender : IInputSender
     {
+        internal delegate uint SendInputRefDelegate(uint nInputs, ref NativeMethods.INPUT pInputs, int cbSize);
+        internal delegate uint SendInputArrayDelegate(uint nInputs, NativeMethods.INPUT[] pInputs, int cbSize);
+
+        private readonly SendInputRefDelegate _sendInputRef;
+        private readonly SendInputArrayDelegate _sendInputArray;
+        private readonly Func<IntPtr> _getMessageExtraInfo;
+
+        public WindowsInputSender()
+            : this(NativeMethods.SendInput, NativeMethods.SendInput, NativeMethods.GetMessageExtraInfo)
+        {
+        }
+
+        internal WindowsInputSender(
+            SendInputRefDelegate sendInputRef,
+            SendInputArrayDelegate sendInputArray,
+            Func<IntPtr> getMessageExtraInfo)
+        {
+            _sendInputRef = sendInputRef;
+            _sendInputArray = sendInputArray;
+            _getMessageExtraInfo = getMessageExtraInfo;
+        }
+
         private static readonly ushort[] ModifierKeys =
         {
             0x5B, // Left Win
@@ -25,7 +47,6 @@ namespace TypeIt4Me.Services
             Span<NativeMethods.INPUT> inputs = stackalloc NativeMethods.INPUT[ModifierKeys.Length];
             for (int i = 0; i < ModifierKeys.Length; i++)
             {
-                // We don't check state; just spam KeyUp. It's safe and robust.
                 inputs[i] = new NativeMethods.INPUT
                 {
                     type = NativeMethods.INPUT_KEYBOARD,
@@ -36,19 +57,18 @@ namespace TypeIt4Me.Services
                             wVk = ModifierKeys[i],
                             dwFlags = NativeMethods.KEYEVENTF_KEYUP,
                             time = 0,
-                            dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                            dwExtraInfo = _getMessageExtraInfo()
                         }
                     }
                 };
             }
-            NativeMethods.SendInput((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
+            _sendInputRef((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
         }
 
         public void SendVirtualKey(ushort vkCode)
         {
             Span<NativeMethods.INPUT> inputs = stackalloc NativeMethods.INPUT[2];
 
-            // Key Down
             inputs[0] = new NativeMethods.INPUT
             {
                 type = NativeMethods.INPUT_KEYBOARD,
@@ -59,12 +79,11 @@ namespace TypeIt4Me.Services
                         wVk = vkCode,
                         dwFlags = 0,
                         time = 0,
-                        dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                        dwExtraInfo = _getMessageExtraInfo()
                     }
                 }
             };
 
-            // Key Up
             inputs[1] = new NativeMethods.INPUT
             {
                 type = NativeMethods.INPUT_KEYBOARD,
@@ -75,12 +94,12 @@ namespace TypeIt4Me.Services
                         wVk = vkCode,
                         dwFlags = NativeMethods.KEYEVENTF_KEYUP,
                         time = 0,
-                        dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                        dwExtraInfo = _getMessageExtraInfo()
                     }
                 }
             };
 
-            NativeMethods.SendInput((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
+            _sendInputRef((uint)inputs.Length, ref inputs[0], NativeMethods.INPUT.Size);
         }
 
         public void SendInputBatch(ReadOnlySpan<char> text)
@@ -94,18 +113,13 @@ namespace TypeIt4Me.Services
 
                 foreach (char c in text)
                 {
-                    // Handle newline characters specially - send as Enter key press
-                    // Many apps don't interpret Unicode \r or \n as line breaks, but VK_RETURN works universally
                     if (c == '\r')
                     {
-                        // Skip carriage return - we'll handle it with \n to avoid double line breaks
-                        // Windows text typically uses \r\n, so we only act on \n
                         continue;
                     }
 
                     if (c == '\n')
                     {
-                        // Send Enter key (VK_RETURN = 0x0D) as a virtual key press
                         inputs[count++] = new NativeMethods.INPUT
                         {
                             type = NativeMethods.INPUT_KEYBOARD,
@@ -116,7 +130,7 @@ namespace TypeIt4Me.Services
                                     wVk = 0x0D, // VK_RETURN
                                     dwFlags = 0,
                                     time = 0,
-                                    dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                                    dwExtraInfo = _getMessageExtraInfo()
                                 }
                             }
                         };
@@ -131,14 +145,13 @@ namespace TypeIt4Me.Services
                                     wVk = 0x0D, // VK_RETURN
                                     dwFlags = NativeMethods.KEYEVENTF_KEYUP,
                                     time = 0,
-                                    dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                                    dwExtraInfo = _getMessageExtraInfo()
                                 }
                             }
                         };
                         continue;
                     }
 
-                    // Key Down (Unicode character)
                     inputs[count++] = new NativeMethods.INPUT
                     {
                         type = NativeMethods.INPUT_KEYBOARD,
@@ -149,12 +162,11 @@ namespace TypeIt4Me.Services
                                 wScan = c,
                                 dwFlags = NativeMethods.KEYEVENTF_UNICODE,
                                 time = 0,
-                                dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                                dwExtraInfo = _getMessageExtraInfo()
                             }
                         }
                     };
 
-                    // Key Up
                     inputs[count++] = new NativeMethods.INPUT
                     {
                         type = NativeMethods.INPUT_KEYBOARD,
@@ -165,7 +177,7 @@ namespace TypeIt4Me.Services
                                 wScan = c,
                                 dwFlags = NativeMethods.KEYEVENTF_UNICODE | NativeMethods.KEYEVENTF_KEYUP,
                                 time = 0,
-                                dwExtraInfo = NativeMethods.GetMessageExtraInfo()
+                                dwExtraInfo = _getMessageExtraInfo()
                             }
                         }
                     };
@@ -173,7 +185,7 @@ namespace TypeIt4Me.Services
 
                 if (count > 0)
                 {
-                    NativeMethods.SendInput((uint)count, inputs, NativeMethods.INPUT.Size);
+                    _sendInputArray((uint)count, inputs, NativeMethods.INPUT.Size);
                 }
             }
             finally
