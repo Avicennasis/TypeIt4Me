@@ -21,7 +21,7 @@ namespace TypeIt4Me.Services
             try
             {
                 unmanagedChars = System.Runtime.InteropServices.Marshal.SecureStringToGlobalAllocUnicode(secureString);
-                char[] chars = new char[secureString.Length];
+                char[] chars = GC.AllocateUninitializedArray<char>(secureString.Length, pinned: true);
                 System.Runtime.InteropServices.Marshal.Copy(unmanagedChars, chars, 0, secureString.Length);
                 return chars;
             }
