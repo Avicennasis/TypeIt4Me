@@ -222,7 +222,15 @@ namespace TypeIt4Me.Services
                     hmacKey = new byte[32];
 
                     Buffer.BlockCopy(derivedBytes, 0, encryptionKey, 0, 32);
-                    // Skip 16 bytes for the IV (derived during encryption, but read from the stream here)
+                    byte[] derivedIv = new byte[16];
+                    Buffer.BlockCopy(derivedBytes, 32, derivedIv, 0, 16);
+                    bool ivValid = CryptographicOperations.FixedTimeEquals(iv, derivedIv);
+                    Array.Clear(derivedIv, 0, derivedIv.Length);
+
+                    if (!ivValid)
+                    {
+                        throw new CryptographicException("IV validation failed. Data may be corrupted or tampered with.");
+                    }
                     Buffer.BlockCopy(derivedBytes, 48, hmacKey, 0, 32);
                 }
                 finally
