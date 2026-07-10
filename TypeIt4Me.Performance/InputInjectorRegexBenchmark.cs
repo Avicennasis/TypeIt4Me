@@ -10,7 +10,7 @@ namespace TypeIt4Me.Performance
     [MemoryDiagnoser]
     public class InputInjectorRegexBenchmark
     {
-        private string _text;
+        private string? _text;
         private static readonly Regex CommandPattern = new Regex(@"\{([^}]+)\}", RegexOptions.Compiled);
 
         [GlobalSetup]
@@ -20,18 +20,18 @@ namespace TypeIt4Me.Performance
         }
 
         [Benchmark(Baseline = true)]
-        public async Task StringSubstring()
+        public async Task ReadOnlyMemoryRegex()
         {
-            await ProcessTextWithCommands_Original(_text);
+            await ProcessTextWithCommands_Original(_text!);
         }
 
         [Benchmark]
-        public async Task ReadOnlyMemory()
+        public async Task ManualScan()
         {
-            await ProcessTextWithCommands_Optimized(_text);
+            await ProcessTextWithCommands_Optimized(_text!);
         }
 
-        private Task TypePlainTextAsync_Original(string text)
+        private Task TypePlainTextAsync_Original(ReadOnlyMemory<char> text)
         {
             return Task.CompletedTask;
         }
@@ -50,7 +50,7 @@ namespace TypeIt4Me.Performance
             {
                 if (match.Index > lastIndex)
                 {
-                    string beforeText = text.Substring(lastIndex, match.Index - lastIndex);
+                    var beforeText = text.AsMemory(lastIndex, match.Index - lastIndex);
                     await TypePlainTextAsync_Original(beforeText);
                 }
 
@@ -62,7 +62,7 @@ namespace TypeIt4Me.Performance
 
             if (lastIndex < text.Length)
             {
-                string remainingText = text.Substring(lastIndex);
+                var remainingText = text.AsMemory(lastIndex);
                 await TypePlainTextAsync_Original(remainingText);
             }
         }
@@ -80,20 +80,37 @@ namespace TypeIt4Me.Performance
         private async Task ProcessTextWithCommands_Optimized(string text)
         {
             int lastIndex = 0;
-            var matches = CommandPattern.Matches(text);
+            int currentIndex = 0;
 
-            foreach (Match match in matches)
+            while (currentIndex < text.Length)
             {
-                if (match.Index > lastIndex)
+                int openBraceIndex = text.IndexOf('{', currentIndex);
+                if (openBraceIndex == -1)
+                    break;
+
+                int closeBraceIndex = text.IndexOf('}', openBraceIndex + 1);
+                if (closeBraceIndex == -1)
+                    break;
+
+                if (closeBraceIndex == openBraceIndex + 1)
                 {
-                    var beforeText = text.AsMemory(lastIndex, match.Index - lastIndex);
+                    // Empty braces "{}" - Regex [^}]+ requires at least 1 char
+                    currentIndex = openBraceIndex + 1;
+                    continue;
+                }
+
+                if (openBraceIndex > lastIndex)
+                {
+                    var beforeText = text.AsMemory(lastIndex, openBraceIndex - lastIndex);
                     await TypePlainTextAsync_Optimized(beforeText);
                 }
 
-                string command = match.Groups[1].Value.Trim();
+                var commandMemory = text.AsMemory(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1);
+                string command = commandMemory.ToString().Trim(); // Need ToString because ProcessCommand expects string, or we change it.
                 await ProcessCommand_Optimized(command);
 
-                lastIndex = match.Index + match.Length;
+                lastIndex = closeBraceIndex + 1;
+                currentIndex = lastIndex;
             }
 
             if (lastIndex < text.Length)
