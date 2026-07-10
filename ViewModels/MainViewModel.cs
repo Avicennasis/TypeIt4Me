@@ -188,7 +188,10 @@ namespace TypeIt4Me.ViewModels
                 await Task.Delay(300, token); // 300ms delay
 
                 string filter = SearchText;
-                var source = _snippetManager.Snippets.ToList();
+                // Snapshot the collection (shallow copy of references) to avoid InvalidOperationException
+                // if the underlying collection is modified during background enumeration.
+                // Using an array allocation is significantly faster and uses less memory than .ToList().
+                Snippet[] source = _snippetManager.Snippets.ToArray();
 
                 var results = await Task.Run(() => PerformFiltering(filter, source), token);
 
