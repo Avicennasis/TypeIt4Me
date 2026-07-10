@@ -1,0 +1,21 @@
+/app/TypeIt4Me.Performance/InputInjectorRegexBenchmark.cs(13,24): warning CS8618: Non-nullable field '_text' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/app/TypeIt4Me.Performance/TypeIt4Me.Performance.csproj]
+/app/TypeIt4Me.Performance/InputInjectorBenchmark.cs(78,24): warning CS8618: Non-nullable field '_shortText' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/app/TypeIt4Me.Performance/TypeIt4Me.Performance.csproj]
+/app/TypeIt4Me.Performance/InputInjectorBenchmark.cs(79,24): warning CS8618: Non-nullable field '_mediumText' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/app/TypeIt4Me.Performance/TypeIt4Me.Performance.csproj]
+/app/TypeIt4Me.Performance/InputInjectorBenchmark.cs(80,24): warning CS8618: Non-nullable field '_longText' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/app/TypeIt4Me.Performance/TypeIt4Me.Performance.csproj]
+/app/TypeIt4Me.Performance/LoggerBenchmark.cs(11,24): warning CS8618: Non-nullable field '_logPath' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/app/TypeIt4Me.Performance/TypeIt4Me.Performance.csproj]
+/app/TypeIt4Me.Performance/LoggerBenchmark.cs(12,24): warning CS8618: Non-nullable field '_content' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable. [/app/TypeIt4Me.Performance/TypeIt4Me.Performance.csproj]
+/app/TypeIt4Me.Performance/InputInjectorBenchmark.cs(78,24): warning CS0414: The field 'InputInjectorBenchmark._shortText' is assigned but its value is never used [/app/TypeIt4Me.Performance/TypeIt4Me.Performance.csproj]
+You must install or update .NET to run this application.
+
+App: /app/TypeIt4Me.Performance/bin/Release/net8.0-windows/TypeIt4Me.Performance
+Architecture: x64
+Framework: 'Microsoft.WindowsDesktop.App', version '8.0.0' (x64)
+.NET location: /usr/lib/dotnet
+
+No frameworks were found.
+
+Learn more:
+https://aka.ms/dotnet/app-launch-failed
+
+To install missing framework, download:
+https://aka.ms/dotnet-core-applaunch?framework=Microsoft.WindowsDesktop.App&framework_version=8.0.0&arch=x64&rid=ubuntu.24.04-x64&os=ubuntu.24.04

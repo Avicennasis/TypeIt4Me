@@ -12,4 +12,8 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TypeIt4Me.csproj" />
+  </ItemGroup>
+
 </Project>
