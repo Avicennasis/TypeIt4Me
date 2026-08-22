@@ -166,7 +166,22 @@ namespace TypeIt4Me.Services
         /// </summary>
         private bool TryParseSleepDuration(string command, out int milliseconds)
         {
+            if (command.Length <= "SLEEP".Length)
+            {
+                milliseconds = 0;
+                return false;
+            }
+
             var span = command.AsSpan("SLEEP".Length).Trim();
+
+            // Security: Limit length to 6 characters (up to 999999) and reject negative numbers
+            // to prevent DoS from parsing extremely large or invalid inputs.
+            if (span.Length == 0 || span.Length > 6 || span[0] == '-')
+            {
+                milliseconds = 0;
+                return false;
+            }
+
             return int.TryParse(span, out milliseconds);
         }
 

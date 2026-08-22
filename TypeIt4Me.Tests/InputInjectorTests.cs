@@ -42,6 +42,19 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
+        public async Task TypeTextAsync_SleepCommand_Invalid_TypesLiterally()
+        {
+            var mock = new MockInputSender();
+            var injector = new InputInjector(mock);
+
+            await injector.TypeTextAsync("{SLEEP 1000000}");
+            await injector.TypeTextAsync("{SLEEP -100}");
+
+            Assert.Contains("SEND_BATCH:{SLEEP 1000000}", mock.Log);
+            Assert.Contains("SEND_BATCH:{SLEEP -100}", mock.Log);
+        }
+
+        [Fact]
         public async Task TypeTextAsync_UnknownCommand_TypesLiterally()
         {
             var mock = new MockInputSender();
