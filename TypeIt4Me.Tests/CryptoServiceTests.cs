@@ -185,10 +185,11 @@ public class CryptoServiceTests
     // --- SecureStringToCharArray ---
 
     [Fact]
-    public void SecureStringToCharArray_NullInput_ReturnsNull()
+    public void SecureStringToCharArray_NullInput_ReturnsEmptyArray()
     {
         var result = CryptoService.SecureStringToCharArray(null);
-        Assert.Null(result);
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]
