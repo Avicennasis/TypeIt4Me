@@ -18,6 +18,7 @@ namespace TypeIt4Me.Services
         private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);
         private char[]? _currentPin; // Store PIN in memory (mutable char[] so it can be cleared)
+        private System.Threading.CancellationTokenSource? _debounceCts;
 
         public BulkObservableCollection<Snippet> Snippets { get; private set; } = new BulkObservableCollection<Snippet>();
 
@@ -245,31 +246,38 @@ namespace TypeIt4Me.Services
         public void AddSnippet(Snippet snippet)
         {
             Snippets.Add(snippet);
-            Task.Run(async () =>
-            {
-                try
-                {
-                    await SaveSnippetsAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("Background save failed after AddSnippet", ex);
-                }
-            });
+            QueueSave("AddSnippet");
         }
 
         public void RemoveSnippet(Snippet snippet)
         {
             Snippets.Remove(snippet);
+            QueueSave("RemoveSnippet");
+        }
+
+        private void QueueSave(string callerName)
+        {
+            _debounceCts?.Cancel();
+            _debounceCts = new System.Threading.CancellationTokenSource();
+            var token = _debounceCts.Token;
+
             Task.Run(async () =>
             {
                 try
                 {
-                    await SaveSnippetsAsync();
+                    await Task.Delay(500, token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        await SaveSnippetsAsync();
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // Ignored
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("Background save failed after RemoveSnippet", ex);
+                    _logger.LogError($"Background save failed after {callerName}", ex);
                 }
             });
         }

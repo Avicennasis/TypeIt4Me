@@ -405,7 +405,7 @@ namespace TypeIt4Me.Tests
                 snippetManager.AddSnippet(snippet);
 
                 // Assert
-                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
+                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(2000));
                 Assert.Equal(tcs.Task, completedTask);
             }
 
@@ -443,7 +443,7 @@ namespace TypeIt4Me.Tests
                 snippetManager.RemoveSnippet(snippet);
 
                 // Assert
-                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
+                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(2000));
                 Assert.Equal(tcs.Task, completedTask);
             }
 
