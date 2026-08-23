@@ -22,7 +22,7 @@ namespace TypeIt4Me.Views
                 {
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = url,
+                        FileName = uriResult.AbsoluteUri,
                         UseShellExecute = true
                     });
                 }
