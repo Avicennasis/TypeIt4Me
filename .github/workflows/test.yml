@@ -11,7 +11,14 @@ permissions:
 
 jobs:
   build-test:
-    runs-on: windows-latest
+    # Local Windows VM runner (dev-win11-typeit4me -- dev's win11 libvirt guest,
+    # dotnet SDK 8.0.419). This job CANNOT move to the Linux dev-pool: the test
+    # project is net8.0-windows + UseWPF, so testhost needs
+    # Microsoft.WindowsDesktop.App, which a Linux runner does not have.
+    # Previously windows-latest, which spends GitHub-hosted minutes -- one
+    # monthly cap shared across every repo on the account. Exhausting it blocked
+    # CI on four repos at once on 2026-08-23.
+    runs-on: [self-hosted, windows, x64, dev-pool, typeit4me]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -19,6 +26,14 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 8.0.x
+        env:
+          # The runner service runs as NT AUTHORITY\NETWORK SERVICE, which cannot
+          # write C:\Program Files\dotnet -- setup-dotnet's default install root.
+          # Without this the step dies with "The current user doesn't have write
+          # access to the installation root". Install into the runner's own tree
+          # instead: writable by the service account, and persistent across jobs
+          # so the SDK is downloaded once rather than every run.
+          DOTNET_INSTALL_DIR: C:\actions-runner\dotnet
 
       - name: Restore
         run: dotnet restore TypeIt4Me.sln
