@@ -26,6 +26,14 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 8.0.x
+        env:
+          # The runner service runs as NT AUTHORITY\NETWORK SERVICE, which cannot
+          # write C:\Program Files\dotnet -- setup-dotnet's default install root.
+          # Without this the step dies with "The current user doesn't have write
+          # access to the installation root". Install into the runner's own tree
+          # instead: writable by the service account, and persistent across jobs
+          # so the SDK is downloaded once rather than every run.
+          DOTNET_INSTALL_DIR: C:\actions-runner\dotnet
 
       - name: Restore
         run: dotnet restore TypeIt4Me.sln
