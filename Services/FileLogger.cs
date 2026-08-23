@@ -7,6 +7,12 @@ namespace TypeIt4Me.Services
 {
     public sealed class FileLogger : ILogger, IDisposable
     {
+        /// <summary>
+        /// Size at which the log rolls over to <c>&lt;name&gt;.1</c>. One generation of history is
+        /// kept, so the crash trail survives the rollover instead of being discarded.
+        /// </summary>
+        private const long MaxLogSizeBytes = 1024 * 1024;
+
         private readonly string _logPath;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
         private readonly object _syncLock = new object();
@@ -67,6 +73,7 @@ namespace TypeIt4Me.Services
                  await _semaphore.WaitAsync().ConfigureAwait(false);
                  try
                  {
+                     RotateIfOversized();
                      await File.AppendAllTextAsync(_logPath, logEntry).ConfigureAwait(false);
                  }
                  finally
@@ -78,6 +85,38 @@ namespace TypeIt4Me.Services
              {
                  // Ignore
              }
+        }
+
+        /// <summary>
+        /// Rolls an oversized log over to <c>&lt;name&gt;.1</c> so diagnostic history is preserved
+        /// rather than truncated away. Must be called while the semaphore is held.
+        /// </summary>
+        /// <remarks>
+        /// Rotation failures are swallowed on purpose. The caller's catch block silently discards
+        /// anything that escapes, so letting an IO error propagate from here would cost us the log
+        /// line we were about to write. Failing to rotate is far cheaper than failing to log.
+        /// </remarks>
+        private void RotateIfOversized()
+        {
+            try
+            {
+                // One FileInfo snapshot answers both questions. Using File.Exists() followed by a
+                // separate new FileInfo().Length would reintroduce a TOCTOU window in which the
+                // file can vanish between the two calls and throw FileNotFoundException.
+                FileInfo info = new FileInfo(_logPath);
+                if (info.Exists && info.Length > MaxLogSizeBytes)
+                {
+                    File.Move(_logPath, _logPath + ".1", overwrite: true);
+                }
+            }
+            catch (IOException)
+            {
+                // Log stays oversized this round; we would rather append than lose the entry.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Same reasoning: keep appending rather than dropping the line.
+            }
         }
 
         public void Dispose()
