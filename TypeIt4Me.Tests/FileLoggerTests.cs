@@ -17,13 +17,16 @@ namespace TypeIt4Me.Tests
 
         public void Dispose()
         {
-            if (File.Exists(_tempFile))
+            foreach (var path in new[] { _tempFile, _tempFile + ".1" })
             {
-                try
+                if (File.Exists(path))
                 {
-                    File.Delete(_tempFile);
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch { }
                 }
-                catch { }
             }
         }
 
@@ -103,6 +106,45 @@ namespace TypeIt4Me.Tests
             {
                 Assert.Contains($"Message {i}", content);
             }
+        }
+
+        [Fact]
+        public void Log_RotatesOversizedLog_PreservingHistory()
+        {
+            // Seed a log that has already crossed the 1 MB rollover threshold.
+            const string oldMarker = "OLD HISTORY MARKER";
+            var seeded = new string('x', 1024 * 1024) + "\n" + oldMarker + "\n";
+            File.WriteAllText(_tempFile, seeded);
+
+            using (var logger = new FileLogger(_tempFile))
+            {
+                logger.LogInfo("Entry after rotation");
+            }
+
+            var rotatedPath = _tempFile + ".1";
+
+            // The old log is rolled aside, not deleted: the crash trail is still readable.
+            Assert.True(File.Exists(rotatedPath));
+            var rotated = File.ReadAllText(rotatedPath);
+            Assert.Contains(oldMarker, rotated);
+            Assert.DoesNotContain("Entry after rotation", rotated);
+
+            // The live log restarts with just the new entry.
+            var current = File.ReadAllText(_tempFile);
+            Assert.Contains("[INFO] Entry after rotation", current);
+            Assert.DoesNotContain(oldMarker, current);
+        }
+
+        [Fact]
+        public void Log_DoesNotRotate_WhenLogIsUnderThreshold()
+        {
+            using (var logger = new FileLogger(_tempFile))
+            {
+                logger.LogInfo("Small entry");
+            }
+
+            Assert.False(File.Exists(_tempFile + ".1"));
+            Assert.Contains("[INFO] Small entry", File.ReadAllText(_tempFile));
         }
     }
 }
