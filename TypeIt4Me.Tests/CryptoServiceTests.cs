@@ -181,4 +181,43 @@ public class CryptoServiceTests
     {
         Assert.Equal("V3|data", CryptoService.Decrypt("V3|data", ""));
     }
+
+    // --- SecureStringToCharArray ---
+
+    [Fact]
+    public void SecureStringToCharArray_NullInput_ReturnsEmptyArray()
+    {
+        var result = CryptoService.SecureStringToCharArray(null);
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void SecureStringToCharArray_EmptySecureString_ReturnsEmptyArray()
+    {
+        using var secureString = new System.Security.SecureString();
+        var result = CryptoService.SecureStringToCharArray(secureString);
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void SecureStringToCharArray_ValidSecureString_ReturnsCorrectCharArray()
+    {
+        var text = "secure123";
+        using var secureString = new System.Security.SecureString();
+        foreach (var c in text)
+        {
+            secureString.AppendChar(c);
+        }
+        secureString.MakeReadOnly();
+
+        var result = CryptoService.SecureStringToCharArray(secureString);
+
+        Assert.NotNull(result);
+        Assert.Equal(text.ToCharArray(), result);
+
+        // Clean up unmanaged memory manually in test
+        Array.Clear(result, 0, result.Length);
+    }
 }
