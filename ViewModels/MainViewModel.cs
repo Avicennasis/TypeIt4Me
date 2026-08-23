@@ -235,10 +235,6 @@ namespace TypeIt4Me.ViewModels
         {
             CancelPendingSearch();
             FilteredSnippets.ReplaceAll(PerformFiltering(SearchText, _snippetManager.Snippets));
-
-            // Re-register hotkeys? 
-            // In a real app we'd diff and update. For MVP, we can treat this separately or just register all on Load.
-            // But HotkeyManager needs the Window Handle which we might not have immediately in VM constructor.
         }
 
         [RelayCommand]
