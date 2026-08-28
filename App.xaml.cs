@@ -443,6 +443,7 @@ namespace TypeIt4Me
             {
                 byte[] bytes1 = Convert.FromBase64String(hash1);
                 byte[] bytes2 = Convert.FromBase64String(hash2);
+                if (bytes1.Length != bytes2.Length) return false;
                 return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(bytes1, bytes2);
             }
             catch (FormatException)
