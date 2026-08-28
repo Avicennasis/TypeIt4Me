@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using TypeIt4Me.Services;
 using TypeIt4Me.Tests.Fakes;
@@ -71,6 +72,18 @@ namespace TypeIt4Me.Tests
             Assert.Equal("DELAY:10", mock.Log[7]);
             Assert.Equal("SEND_VK:0x0D", mock.Log[8]);
             Assert.Equal("DELAY:10", mock.Log[9]);
+        }
+
+        [Fact]
+        public async Task TypeTextAsync_ExceedsMaxLength_ThrowsArgumentException()
+        {
+            var mock = new MockInputSender();
+            var injector = new InputInjector(mock);
+
+            // MaxSnippetLength is 100 * 1024
+            string largeText = new string('a', (100 * 1024) + 1);
+
+            await Assert.ThrowsAsync<ArgumentException>(() => injector.TypeTextAsync(largeText));
         }
     }
 }
