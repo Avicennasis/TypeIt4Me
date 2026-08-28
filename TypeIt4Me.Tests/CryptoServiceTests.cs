@@ -83,6 +83,14 @@ public class CryptoServiceTests
     }
 
     [Fact]
+    public void Encrypt_ExceedsMaxPlainTextSize_ThrowsArgumentException()
+    {
+        var plaintext = new string('A', 10 * 1024 * 1024 + 1);
+        var pin = "testpin";
+        Assert.Throws<ArgumentException>(() => CryptoService.Encrypt(plaintext, pin));
+    }
+
+    [Fact]
     public void EncryptDecrypt_UnicodeText_PreservesContent()
     {
         var plaintext = "日本語テスト 🔐 café résumé";
