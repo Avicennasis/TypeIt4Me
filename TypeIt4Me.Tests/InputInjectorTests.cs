@@ -54,6 +54,28 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
+        public async Task TypeTextAsync_EmptyBraces_TypesLiterally()
+        {
+            var mock = new MockInputSender();
+            var injector = new InputInjector(mock);
+
+            await injector.TypeTextAsync("{}");
+
+            Assert.Contains("SEND_BATCH:{}", mock.Log);
+        }
+
+        [Fact]
+        public async Task TypeTextAsync_EmptyBraces_WithinText_TypesLiterally()
+        {
+            var mock = new MockInputSender();
+            var injector = new InputInjector(mock);
+
+            await injector.TypeTextAsync("A{}B");
+
+            Assert.Contains("SEND_BATCH:A{}B", mock.Log);
+        }
+
+        [Fact]
         public async Task TypeTextAsync_MixedContent_HandlesSequence()
         {
             var mock = new MockInputSender();
