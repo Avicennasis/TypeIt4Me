@@ -166,7 +166,7 @@ namespace TypeIt4Me.ViewModels
             var cts = Interlocked.Exchange(ref _searchCts, null);
             if (cts != null)
             {
-                try { cts.Cancel(); } catch { }
+                try { cts.Cancel(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Cancel error: {ex.GetType().FullName}"); }
                 cts.Dispose();
             }
         }
@@ -177,7 +177,7 @@ namespace TypeIt4Me.ViewModels
             var oldCts = Interlocked.Exchange(ref _searchCts, newCts);
             if (oldCts != null)
             {
-                try { oldCts.Cancel(); } catch { }
+                try { oldCts.Cancel(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Cancel error: {ex.GetType().FullName}"); }
                 oldCts.Dispose();
             }
 
