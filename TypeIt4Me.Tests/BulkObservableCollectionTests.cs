@@ -112,4 +112,15 @@ public class BulkObservableCollectionTests
         Assert.Single(collection);
         Assert.Equal("item1", collection[0]);
     }
+
+    [Fact]
+    public void AddRange_NullItems_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var collection = new BulkObservableCollection<string>();
+
+        // Act & Assert
+        var exception = Assert.Throws<System.ArgumentNullException>(() => collection.AddRange(null!));
+        Assert.Equal("items", exception.ParamName);
+    }
 }
