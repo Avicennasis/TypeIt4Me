@@ -334,15 +334,15 @@ namespace TypeIt4Me.ViewModels
         }
 
         [RelayCommand]
-        private void RemovePin()
+        private async Task RemovePin()
         {
              _settingsManager.Settings.PinHash = string.Empty;
              _settingsManager.Settings.PinSalt = string.Empty;
-             _settingsManager.SaveSettingsAsync();
+             await _settingsManager.SaveSettingsAsync();
              
              // Disable encryption and save as plain text
              _snippetManager.SetPin(ReadOnlySpan<char>.Empty);
-             _snippetManager.SaveSnippetsAsync();
+             await _snippetManager.SaveSnippetsAsync();
              
              MessageBox.Show(
                  "PIN Removed. Snippets are now stored in plain text.",
