@@ -245,8 +245,8 @@ namespace TypeIt4Me
 
                 if (failedSnippets.Count > 0)
                 {
-                    string msg = "Failed to register hotkeys for the following snippets (likely conflicts):\n\n" +
-                                 string.Join("\n", failedSnippets);
+                    failedSnippets.Insert(0, "Failed to register hotkeys for the following snippets (likely conflicts):\n");
+                    string msg = string.Join("\n", failedSnippets);
                     MessageBox.Show(msg, "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
