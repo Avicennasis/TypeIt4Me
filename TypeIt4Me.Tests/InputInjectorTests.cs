@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using TypeIt4Me.Services;
 using TypeIt4Me.Tests.Fakes;
@@ -7,6 +8,17 @@ namespace TypeIt4Me.Tests
 {
     public class InputInjectorTests
     {
+        [Fact]
+        public async Task TypeTextAsync_ExceedsMaxLength_ThrowsArgumentException()
+        {
+            var mock = new MockInputSender();
+            var injector = new InputInjector(mock);
+
+            string longText = new string('a', 100 * 1024 + 1);
+
+            await Assert.ThrowsAsync<ArgumentException>(() => injector.TypeTextAsync(longText));
+        }
+
         [Fact]
         public async Task TypeTextAsync_Plain_SendsBatch()
         {
