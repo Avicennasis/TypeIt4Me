@@ -20,6 +20,7 @@ namespace TypeIt4Me.ViewModels
         private readonly ISettingsManager _settingsManager;
         private readonly IAutoLockService _autoLockService;
         private readonly IThemeService _themeService;
+        private readonly ILogger _logger;
 
         [ObservableProperty]
         private string _searchText = string.Empty;
@@ -84,7 +85,7 @@ namespace TypeIt4Me.ViewModels
 
         public MainViewModel(ISnippetManager snippetManager, IHotkeyManager hotkeyManager, IInputInjector inputInjector, 
                              IFocusTracker focusTracker, ISettingsManager settingsManager, 
-                             IAutoLockService autoLockService, IThemeService themeService)
+                             IAutoLockService autoLockService, IThemeService themeService, ILogger logger)
         {
             _snippetManager = snippetManager;
             _hotkeyManager = hotkeyManager;
@@ -93,6 +94,7 @@ namespace TypeIt4Me.ViewModels
             _settingsManager = settingsManager;
             _autoLockService = autoLockService;
             _themeService = themeService;
+            _logger = logger;
             
             _autoLockService.OnLockTriggered += LockApp;
 
@@ -206,7 +208,7 @@ namespace TypeIt4Me.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Search error: {ex.GetType().FullName}");
+                _logger.LogError("Search error", ex);
             }
             finally
             {

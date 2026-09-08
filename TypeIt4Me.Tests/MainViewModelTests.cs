@@ -18,6 +18,7 @@ namespace TypeIt4Me.Tests
             var fakeSettingsManager = new FakeSettingsManager();
             var fakeAutoLockService = new FakeAutoLockService();
             var fakeThemeService = new FakeThemeService();
+            var fakeLogger = new FakeLogger();
 
             var viewModel = new MainViewModel(
                 fakeSnippetManager,
@@ -26,7 +27,8 @@ namespace TypeIt4Me.Tests
                 fakeFocusTracker,
                 fakeSettingsManager,
                 fakeAutoLockService,
-                fakeThemeService
+                fakeThemeService,
+                fakeLogger
             );
 
             // Ensure initial state
