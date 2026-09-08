@@ -87,6 +87,30 @@ public class BulkObservableCollectionTests
     }
 
     [Fact]
+    public void ReplaceAll_NullItems_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var collection = new BulkObservableCollection<string>();
+
+        // Act & Assert
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+        Assert.Throws<ArgumentNullException>(() => collection.ReplaceAll(null));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+    }
+
+    [Fact]
+    public void AddRange_NullItems_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var collection = new BulkObservableCollection<string>();
+
+        // Act & Assert
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+        Assert.Throws<ArgumentNullException>(() => collection.AddRange(null));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+    }
+
+    [Fact]
     public void ReplaceAll_WithEmptyList_ClearsCollection()
     {
         // Arrange
