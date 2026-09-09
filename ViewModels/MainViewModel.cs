@@ -217,13 +217,21 @@ namespace TypeIt4Me.ViewModels
 
         private IEnumerable<Snippet> PerformFiltering(string filter, IEnumerable<Snippet> source)
         {
-            var query = source.AsEnumerable();
-            if (!string.IsNullOrWhiteSpace(filter))
+            if (string.IsNullOrWhiteSpace(filter))
             {
-                query = query.Where(s => s.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
-                                         (s.Category != null && s.Category.Contains(filter, StringComparison.OrdinalIgnoreCase)));
+                return source.ToList();
             }
-            return query;
+
+            var result = new List<Snippet>(source is ICollection<Snippet> col ? col.Count : 100);
+            foreach (var s in source)
+            {
+                if (s.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                    (s.Category != null && s.Category.Contains(filter, StringComparison.OrdinalIgnoreCase)))
+                {
+                    result.Add(s);
+                }
+            }
+            return result;
         }
 
         private void Snippets_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)

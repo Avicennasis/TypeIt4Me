@@ -2,11 +2,11 @@ using BenchmarkDotNet.Running;
 
 namespace TypeIt4Me.Performance
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<SnippetManagerBenchmark>();
+            var summary = BenchmarkRunner.Run<PerformFilteringBenchmark>();
         }
     }
 }
