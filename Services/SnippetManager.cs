@@ -18,6 +18,7 @@ namespace TypeIt4Me.Services
         private readonly ILogger _logger;
         private readonly System.Threading.SemaphoreSlim _fileLock = new System.Threading.SemaphoreSlim(1, 1);
         private char[]? _currentPin; // Store PIN in memory (mutable char[] so it can be cleared)
+        private bool _disposed;
 
         public BulkObservableCollection<Snippet> Snippets { get; private set; } = new BulkObservableCollection<Snippet>();
 
@@ -272,6 +273,29 @@ namespace TypeIt4Me.Services
                     _logger.LogError("Background save failed after RemoveSnippet", ex);
                 }
             });
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Clear PIN array from memory
+                    if (_currentPin != null)
+                    {
+                        Array.Clear(_currentPin, 0, _currentPin.Length);
+                    }
+                    _fileLock.Dispose();
+                }
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }
