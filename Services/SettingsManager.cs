@@ -75,7 +75,7 @@ namespace TypeIt4Me.Services
                 await _fileLock.WaitAsync();
                 
                 // Atomic Save: Write to .tmp, then Move to .json
-                using (FileStream stream = File.Create(tempPath))
+                using (FileStream stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
                 {
                     await JsonSerializer.SerializeAsync(stream, Settings, _jsonOptions);
                 }
