@@ -13,13 +13,9 @@ namespace TypeIt4Me.Services
         
         public IntPtr LastExternalWindowHandle { get; private set; }
 
-        public FocusTracker() : this(NativeMethods.GetForegroundWindow)
+        internal FocusTracker(Func<IntPtr>? getForegroundWindow = null)
         {
-        }
-
-        internal FocusTracker(Func<IntPtr> getForegroundWindow)
-        {
-            _getForegroundWindow = getForegroundWindow;
+            _getForegroundWindow = getForegroundWindow ?? NativeMethods.GetForegroundWindow;
         }
 
         public void Start(IntPtr myWindowHandle)
