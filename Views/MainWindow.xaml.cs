@@ -50,7 +50,10 @@ namespace TypeIt4Me.Views
             {
                 Application.Current.Shutdown();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Application shutdown failed: {ex.GetType().FullName}");
+            }
             finally
             {
                 Environment.Exit(0);
@@ -86,7 +89,10 @@ namespace TypeIt4Me.Views
                     {
                         Application.Current.Shutdown();
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Application shutdown failed: {ex.GetType().FullName}");
+                    }
                     finally
                     {
                         Environment.Exit(0);
