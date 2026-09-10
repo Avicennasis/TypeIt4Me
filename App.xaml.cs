@@ -152,7 +152,10 @@ namespace TypeIt4Me
                  {
                      Shutdown();
                  }
-                 catch { }
+                 catch (Exception shutdownEx)
+                 {
+                     _logger?.LogError("Error during shutdown attempt", shutdownEx);
+                 }
                  finally
                  {
                      Environment.Exit(1);
