@@ -205,8 +205,7 @@ namespace TypeIt4Me.Services
             const int BatchSize = 50;
             for (int i = 0; i < text.Length; i += BatchSize)
             {
-                ReadOnlyMemory<char> batchMemory = text.Slice(i, Math.Min(BatchSize, text.Length - i));
-                _inputSender.SendInputBatch(batchMemory.Span);
+                _inputSender.SendInputBatch(text.Span.Slice(i, Math.Min(BatchSize, text.Length - i)));
                 await _inputSender.DelayAsync(BatchDelayMs);
             }
         }
