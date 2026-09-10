@@ -4,7 +4,7 @@ using TypeIt4Me.Models;
 
 namespace TypeIt4Me.Services
 {
-    public interface ISnippetManager
+    public interface ISnippetManager : IDisposable
     {
         BulkObservableCollection<Snippet> Snippets { get; }
         void SetPin(ReadOnlySpan<char> pin);
