@@ -372,6 +372,35 @@ namespace TypeIt4Me.Tests
 
         }
 
+        [Fact]
+        public async Task ImportSnippetsAsync_SaveFails_LogsErrorAndReturnsFalse()
+        {
+            // Arrange
+            var snippets = new List<Snippet>
+            {
+                new Snippet { Id = Guid.NewGuid(), Name = "test1", Content = "content1" }
+            };
+            string json = JsonSerializer.Serialize(snippets);
+            await File.WriteAllTextAsync(_importFile, json);
+
+            // Ensure the temporary save file exists before locking it
+            string tempSaveFile = _tempFile + ".tmp";
+            await File.WriteAllTextAsync(tempSaveFile, "[]");
+
+            // Lock the target temporary save file so SaveSnippetsAsync fails
+            using (var fs = new FileStream(tempSaveFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                // Act
+                bool result = await _manager.ImportSnippetsAsync(_importFile);
+
+                // Assert
+                Assert.False(result);
+                // In SaveSnippetsAsync, tempPath is getFilePath() + ".tmp"
+                Assert.Contains(_logger.ErrorLogs, log => log.Message == "Error importing snippets");
+            }
+
+        }
+
         // ===================================================================
         // Background save error tests (2 methods)
         // ===================================================================
