@@ -65,7 +65,7 @@ namespace TypeIt4Me
                 // 3. Initialize ViewModel (Inject Services)
                 _mainViewModel = new MainViewModel(_snippetManager, _hotkeyManager, _inputInjector,
                                                  _focusTracker, _settingsManager,
-                                                 _autoLockService, _themeService);
+                                                 _autoLockService, _themeService, _logger);
 
                 _mainViewModel.RequestSnippetEditor += MainViewModel_RequestSnippetEditor;
                 _mainViewModel.RequestPinSet += MainViewModel_RequestPinSet;
