@@ -346,19 +346,50 @@ namespace TypeIt4Me.ViewModels
         [RelayCommand]
         private void RemovePin()
         {
-             _settingsManager.Settings.PinHash = string.Empty;
-             _settingsManager.Settings.PinSalt = string.Empty;
-             _settingsManager.SaveSettingsAsync();
-             
-             // Disable encryption and save as plain text
-             _snippetManager.SetPin(ReadOnlySpan<char>.Empty);
-             _snippetManager.SaveSnippetsAsync();
-             
-             MessageBox.Show(
-                 "PIN Removed. Snippets are now stored in plain text.",
-                 "Security",
-                 MessageBoxButton.OK,
-                 MessageBoxImage.Information);
+             if (string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
+             {
+                 return;
+             }
+
+             RequestPinInput?.Invoke(pinChars =>
+             {
+                 if (pinChars == null || pinChars.Length == 0)
+                 {
+                     return;
+                 }
+
+                 try
+                 {
+                     string hash = CryptoService.HashPin(pinChars.AsSpan(), _settingsManager.Settings.PinSalt);
+                     byte[] bytes1 = Convert.FromBase64String(hash);
+                     byte[] bytes2 = Convert.FromBase64String(_settingsManager.Settings.PinHash);
+
+                     if (bytes1.Length == bytes2.Length && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(bytes1, bytes2))
+                     {
+                         _settingsManager.Settings.PinHash = string.Empty;
+                         _settingsManager.Settings.PinSalt = string.Empty;
+                         _settingsManager.SaveSettingsAsync();
+
+                         // Disable encryption and save as plain text
+                         _snippetManager.SetPin(ReadOnlySpan<char>.Empty);
+                         _snippetManager.SaveSnippetsAsync();
+
+                         MessageBox.Show(
+                             "PIN Removed. Snippets are now stored in plain text.",
+                             "Security",
+                             MessageBoxButton.OK,
+                             MessageBoxImage.Information);
+                     }
+                     else
+                     {
+                         MessageBox.Show("Invalid PIN. Cannot remove PIN.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
+                     }
+                 }
+                 catch (FormatException)
+                 {
+                     MessageBox.Show("Invalid PIN data format.", "Security", MessageBoxButton.OK, MessageBoxImage.Error);
+                 }
+             });
         }
 
         public event Action RequestPinSet;
