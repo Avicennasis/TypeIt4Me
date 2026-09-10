@@ -83,14 +83,6 @@ public class CryptoServiceTests
     }
 
     [Fact]
-    public void Encrypt_ExceedsMaxPlainTextSize_ThrowsArgumentException()
-    {
-        var plaintext = new string('A', 10 * 1024 * 1024 + 1);
-        var pin = "testpin";
-        Assert.Throws<ArgumentException>(() => CryptoService.Encrypt(plaintext, pin));
-    }
-
-    [Fact]
     public void EncryptDecrypt_UnicodeText_PreservesContent()
     {
         var plaintext = "日本語テスト 🔐 café résumé";
@@ -162,19 +154,6 @@ public class CryptoServiceTests
     {
         Assert.Throws<CryptographicException>(() =>
             CryptoService.Decrypt("V3|AAAA", "pin"));
-    }
-
-    [Fact]
-    public void Decrypt_GenericException_WrapsInCryptographicException()
-    {
-        // "V3|" is required to pass the first check.
-        // "NotValidBase64!@#$" will throw a FormatException in Convert.FromBase64String
-        var ex = Assert.Throws<CryptographicException>(() =>
-            CryptoService.Decrypt("V3|NotValidBase64!@#$", "pin"));
-
-        Assert.NotNull(ex.InnerException);
-        Assert.IsType<FormatException>(ex.InnerException);
-        Assert.Equal("Decryption failed. The data may be corrupted or the PIN may be incorrect.", ex.Message);
     }
 
     // --- Edge cases ---
