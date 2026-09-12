@@ -298,8 +298,7 @@ namespace TypeIt4Me.ViewModels
             
             _hotkeyManager.UnregisterBySnippetId(snippet.Id);
 
-            _snippetManager.RemoveSnippet(snippet);
-            await _snippetManager.SaveSnippetsAsync();
+            await _snippetManager.RemoveSnippet(snippet);
         }
 
         [RelayCommand]

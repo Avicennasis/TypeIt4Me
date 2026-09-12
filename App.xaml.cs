@@ -271,13 +271,13 @@ namespace TypeIt4Me
                 Owner = _mainWindow
             };
 
-            vm.RequestClose += (result) =>
+            vm.RequestClose += async (result) =>
             {
                 if (result)
                 {
                     if (!_snippetManager!.Snippets.Contains(vm.CurrentSnippet))
                     {
-                         _snippetManager.AddSnippet(vm.CurrentSnippet);
+                         await _snippetManager.AddSnippet(vm.CurrentSnippet);
                          if (!RegisterSnippetHotkey(vm.CurrentSnippet))
                          {
                              MessageBox.Show("Failed to register hotkey for this snippet. Key combination may be in use.", "Hotkey Error", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -285,7 +285,7 @@ namespace TypeIt4Me
                     }
                     else
                     {
-                        _snippetManager.SaveSnippetsAsync();
+                        await _snippetManager.SaveSnippetsAsync();
                         // For MVP: Simplest way to update hotkeys is to re-register everything or just this one.
                         // Since we don't track IDs easily yet, let's just unregister all and re-register all.
                         // Efficient? No. Reliable? Yes.
