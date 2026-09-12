@@ -22,8 +22,9 @@ namespace TypeIt4Me.Views
                 {
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = uriResult.AbsoluteUri,
-                        UseShellExecute = true
+                        FileName = "explorer.exe",
+                        Arguments = uriResult.AbsoluteUri,
+                        UseShellExecute = false
                     });
                 }
                 catch (Exception ex)
