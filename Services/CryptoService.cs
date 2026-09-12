@@ -213,45 +213,10 @@ namespace TypeIt4Me.Services
                 }
 
                 // Derive keys from PIN
-                byte[] derivedBytes = new byte[32 + 16 + 32];
-                try
-                {
-                    Rfc2898DeriveBytes.Pbkdf2(pin, salt, derivedBytes, Iterations, HashAlgorithmName.SHA256);
-
-                    encryptionKey = new byte[32];
-                    hmacKey = new byte[32];
-
-                    Buffer.BlockCopy(derivedBytes, 0, encryptionKey, 0, 32);
-                    byte[] derivedIv = new byte[16];
-                    Buffer.BlockCopy(derivedBytes, 32, derivedIv, 0, 16);
-                    bool ivValid = CryptographicOperations.FixedTimeEquals(iv, derivedIv);
-                    Array.Clear(derivedIv, 0, derivedIv.Length);
-
-                    if (!ivValid)
-                    {
-                        throw new CryptographicException("IV validation failed. Data may be corrupted or tampered with.");
-                    }
-                    Buffer.BlockCopy(derivedBytes, 48, hmacKey, 0, 32);
-                }
-                finally
-                {
-                    Array.Clear(derivedBytes, 0, derivedBytes.Length);
-                }
+                (encryptionKey, hmacKey) = DeriveKeys(pin, salt, iv);
 
                 // Verify HMAC before attempting decryption (Authenticate-then-Decrypt)
-                byte[] computedHmac;
-                using (var hmacAlg = new HMACSHA256(hmacKey))
-                {
-                    computedHmac = hmacAlg.ComputeHash(encryptedPayload);
-                }
-
-                // Constant-time comparison to prevent timing attacks
-                bool hmacValid = CryptographicOperations.FixedTimeEquals(storedHmac, computedHmac);
-
-                if (!hmacValid)
-                {
-                    throw new CryptographicException("HMAC validation failed. Data may be corrupted or tampered with, or PIN is incorrect.");
-                }
+                VerifyHmac(hmacKey, encryptedPayload, storedHmac);
 
                 // HMAC is valid, proceed with decryption
                 using var aes = Aes.Create();
@@ -279,6 +244,58 @@ namespace TypeIt4Me.Services
                 // Securely clear sensitive key material
                 if (encryptionKey != null) Array.Clear(encryptionKey, 0, encryptionKey.Length);
                 if (hmacKey != null) Array.Clear(hmacKey, 0, hmacKey.Length);
+            }
+        }
+
+        private static (byte[] encryptionKey, byte[] hmacKey) DeriveKeys(ReadOnlySpan<char> pin, byte[] salt, byte[] expectedIv)
+        {
+            byte[] derivedBytes = new byte[32 + 16 + 32];
+            byte[] encryptionKey = new byte[32];
+            byte[] hmacKey = new byte[32];
+
+            try
+            {
+                Rfc2898DeriveBytes.Pbkdf2(pin, salt, derivedBytes, Iterations, HashAlgorithmName.SHA256);
+
+                Buffer.BlockCopy(derivedBytes, 0, encryptionKey, 0, 32);
+
+                byte[] derivedIv = new byte[16];
+                Buffer.BlockCopy(derivedBytes, 32, derivedIv, 0, 16);
+                bool ivValid = CryptographicOperations.FixedTimeEquals(expectedIv, derivedIv);
+                Array.Clear(derivedIv, 0, derivedIv.Length);
+
+                if (!ivValid)
+                {
+                    throw new CryptographicException("IV validation failed. Data may be corrupted or tampered with.");
+                }
+
+                Buffer.BlockCopy(derivedBytes, 48, hmacKey, 0, 32);
+                return (encryptionKey, hmacKey);
+            }
+            catch
+            {
+                Array.Clear(encryptionKey, 0, encryptionKey.Length);
+                Array.Clear(hmacKey, 0, hmacKey.Length);
+                throw;
+            }
+            finally
+            {
+                Array.Clear(derivedBytes, 0, derivedBytes.Length);
+            }
+        }
+
+        private static void VerifyHmac(byte[] hmacKey, byte[] payload, byte[] storedHmac)
+        {
+            byte[] computedHmac;
+            using (var hmacAlg = new HMACSHA256(hmacKey))
+            {
+                computedHmac = hmacAlg.ComputeHash(payload);
+            }
+
+            bool hmacValid = CryptographicOperations.FixedTimeEquals(storedHmac, computedHmac);
+            if (!hmacValid)
+            {
+                throw new CryptographicException("HMAC validation failed. Data may be corrupted or tampered with, or PIN is incorrect.");
             }
         }
     }
