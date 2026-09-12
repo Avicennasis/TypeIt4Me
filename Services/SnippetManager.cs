@@ -242,37 +242,30 @@ namespace TypeIt4Me.Services
             await SaveSnippetsAsync();
         }
 
-        // Keep synchronous versions for compatibility, but log errors
-        public void AddSnippet(Snippet snippet)
+        public async Task AddSnippet(Snippet snippet)
         {
             Snippets.Add(snippet);
-            Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await SaveSnippetsAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("Background save failed after AddSnippet", ex);
-                }
-            });
+                await SaveSnippetsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Background save failed after AddSnippet", ex);
+            }
         }
 
-        public void RemoveSnippet(Snippet snippet)
+        public async Task RemoveSnippet(Snippet snippet)
         {
             Snippets.Remove(snippet);
-            Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await SaveSnippetsAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("Background save failed after RemoveSnippet", ex);
-                }
-            });
+                await SaveSnippetsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Background save failed after RemoveSnippet", ex);
+            }
         }
 
         protected virtual void Dispose(bool disposing)

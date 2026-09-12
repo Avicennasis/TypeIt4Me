@@ -19,14 +19,16 @@ namespace TypeIt4Me.Tests.Fakes
         public Task SaveSnippetsAsync() => Task.CompletedTask;
         public Task LoadSnippetsAsync() => Task.CompletedTask;
 
-        public void AddSnippet(Snippet snippet)
+        public Task AddSnippet(Snippet snippet)
         {
             Snippets.Add(snippet);
+            return Task.CompletedTask;
         }
 
-        public void RemoveSnippet(Snippet snippet)
+        public Task RemoveSnippet(Snippet snippet)
         {
             Snippets.Remove(snippet);
+            return Task.CompletedTask;
         }
 
         public Task ExportSnippetsAsync(string filePath) => Task.CompletedTask;
