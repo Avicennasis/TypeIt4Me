@@ -49,11 +49,11 @@ namespace TypeIt4Me.Services
                 }
                 catch (FileNotFoundException)
                 {
-                    // Ignore, first run
+                    _logger.LogInfo("Settings file not found; initializing with default settings.");
                 }
                 catch (DirectoryNotFoundException)
                 {
-                    // Ignore, first run
+                    _logger.LogInfo("Settings directory not found; initializing with default settings.");
                 }
                 finally
                 {

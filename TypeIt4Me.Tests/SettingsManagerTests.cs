@@ -13,8 +13,12 @@ namespace TypeIt4Me.Tests
             public bool ErrorLogged { get; private set; }
             public Exception? LoggedException { get; private set; }
             public string? LastErrorMessage { get; private set; }
+            public System.Collections.Generic.List<string> InfoLogs { get; } = new System.Collections.Generic.List<string>();
 
-            public void LogInfo(string message) { }
+            public void LogInfo(string message)
+            {
+                InfoLogs.Add(message);
+            }
 
             public void LogError(string message, Exception? ex = null)
             {
@@ -176,6 +180,7 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.False(_logger.ErrorLogged);
             Assert.Null(_logger.LoggedException);
+            Assert.Contains(_logger.InfoLogs, log => log.Contains("Settings file not found"));
         }
 
         [Fact]
@@ -192,6 +197,7 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.False(_logger.ErrorLogged);
             Assert.Null(_logger.LoggedException);
+            Assert.Contains(_logger.InfoLogs, log => log.Contains("Settings directory not found"));
         }
 
         private class ThrowingSettingsManager : SettingsManager
