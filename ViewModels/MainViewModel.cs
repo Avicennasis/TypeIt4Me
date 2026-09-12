@@ -224,11 +224,21 @@ namespace TypeIt4Me.ViewModels
                 return source.ToList();
             }
 
+            int filterLength = filter.Length;
             var result = new List<Snippet>(source is ICollection<Snippet> col ? col.Count : 100);
             foreach (var s in source)
             {
-                if (s.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
-                    (s.Category != null && s.Category.Contains(filter, StringComparison.OrdinalIgnoreCase)))
+                if (s == null) continue;
+
+                string name = s.Name;
+                if (name != null && name.Length >= filterLength && name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Add(s);
+                    continue;
+                }
+
+                string category = s.Category;
+                if (category != null && category.Length >= filterLength && category.Contains(filter, StringComparison.OrdinalIgnoreCase))
                 {
                     result.Add(s);
                 }
