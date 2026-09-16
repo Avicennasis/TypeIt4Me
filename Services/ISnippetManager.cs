@@ -10,8 +10,8 @@ namespace TypeIt4Me.Services
         void SetPin(ReadOnlySpan<char> pin);
         Task SaveSnippetsAsync();
         Task LoadSnippetsAsync();
-        void AddSnippet(Snippet snippet);
-        void RemoveSnippet(Snippet snippet);
+        Task AddSnippet(Snippet snippet);
+        Task RemoveSnippet(Snippet snippet);
         Task ExportSnippetsAsync(string filePath);
         Task<bool> ImportSnippetsAsync(string filePath, char[]? pin = null);
     }

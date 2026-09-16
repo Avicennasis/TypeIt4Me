@@ -417,25 +417,11 @@ namespace TypeIt4Me.Tests
             var snippetManager = new TestableSnippetManager(logger, _importFile);
             var snippet = new Snippet { Name = "Test" };
 
-            var tcs = new TaskCompletionSource<bool>();
-
-            logger.ErrorLogged += (msg, ex) =>
-            {
-                if (msg == "Background save failed after AddSnippet")
-                {
-                    tcs.TrySetResult(true);
-                }
-            };
-
             // Lock the target file so SaveSnippetsAsync fails
             using (var fs = new FileStream(_importFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
                 // Act
-                snippetManager.AddSnippet(snippet);
-
-                // Assert
-                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
-                Assert.Equal(tcs.Task, completedTask);
+                await snippetManager.AddSnippet(snippet);
             }
 
             Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after AddSnippet");
@@ -453,27 +439,13 @@ namespace TypeIt4Me.Tests
 
             var snippetManager = new TestableSnippetManager(logger, _importFile);
             var snippet = new Snippet { Name = "Test" };
-            snippetManager.Snippets.Add(snippet); // Add directly to bypass AddSnippet's background task
-
-            var tcs = new TaskCompletionSource<bool>();
-
-            logger.ErrorLogged += (msg, ex) =>
-            {
-                if (msg == "Background save failed after RemoveSnippet")
-                {
-                    tcs.TrySetResult(true);
-                }
-            };
+            snippetManager.Snippets.Add(snippet); // Add directly to bypass AddSnippet's save task
 
             // Lock the target file so SaveSnippetsAsync fails
             using (var fs = new FileStream(_importFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
                 // Act
-                snippetManager.RemoveSnippet(snippet);
-
-                // Assert
-                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(1000));
-                Assert.Equal(tcs.Task, completedTask);
+                await snippetManager.RemoveSnippet(snippet);
             }
 
             Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after RemoveSnippet");
