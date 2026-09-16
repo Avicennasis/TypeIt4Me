@@ -147,7 +147,8 @@ namespace TypeIt4Me.Services
                 // Process the command
                 var commandMemory = text.AsMemory(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1);
                 string command = commandMemory.ToString().Trim();
-                await ProcessCommand(command);
+                var fullBraceMemory = text.AsMemory(openBraceIndex, closeBraceIndex - openBraceIndex + 1);
+                await ProcessCommand(command, fullBraceMemory);
 
                 lastIndex = closeBraceIndex + 1;
                 currentIndex = lastIndex;
@@ -170,7 +171,7 @@ namespace TypeIt4Me.Services
             return int.TryParse(span, out milliseconds);
         }
 
-        private async Task ProcessCommand(string command)
+        private async Task ProcessCommand(string command, ReadOnlyMemory<char> fullBraceMemory)
         {
             // Check for SLEEP command with duration
             if (command.StartsWith("SLEEP", StringComparison.OrdinalIgnoreCase))
@@ -193,7 +194,7 @@ namespace TypeIt4Me.Services
             // If not recognized, type it literally including the braces
             else
             {
-                await TypePlainTextAsync(("{" + command + "}").AsMemory());
+                await TypePlainTextAsync(fullBraceMemory);
             }
         }
 
