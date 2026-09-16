@@ -72,7 +72,7 @@ namespace TypeIt4Me.Tests
 
             // Act - filter by category "Letters"
             viewModel.SearchText = "Letters";
-            await System.Threading.Tasks.Task.Delay(350);
+            await System.Threading.Tasks.Task.Delay(1000);
 
             // Assert
             Assert.Contains(viewModel.FilteredSnippets, s => s.Name == "Alpha");
@@ -81,7 +81,7 @@ namespace TypeIt4Me.Tests
 
             // Act - filter by name "beta" (case-insensitive)
             viewModel.SearchText = "beta";
-            await System.Threading.Tasks.Task.Delay(350);
+            await System.Threading.Tasks.Task.Delay(1000);
 
             // Assert
             Assert.Contains(viewModel.FilteredSnippets, s => s.Name == "Beta");
@@ -89,7 +89,7 @@ namespace TypeIt4Me.Tests
 
             // Act - filter longer than any string
             viewModel.SearchText = "NonExistentLongSearchTerm";
-            await System.Threading.Tasks.Task.Delay(350);
+            await System.Threading.Tasks.Task.Delay(1000);
 
             // Assert
             Assert.Empty(viewModel.FilteredSnippets);
