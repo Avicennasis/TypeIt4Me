@@ -93,8 +93,9 @@ namespace TypeIt4Me.Tests
 
             // Assert
             Assert.Empty(viewModel.FilteredSnippets);
-||||||| parent of b0d13d0 (🧪 Add unit test for MainViewModel.UnlockApp)
+        }
 
+        [Fact]
         public void UnlockApp_SetsIsLockedToFalse_UpdatesLastActivity_AndReturnsTrue()
         {
             // Arrange
