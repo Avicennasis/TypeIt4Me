@@ -83,8 +83,6 @@ namespace TypeIt4Me.Services
             { "F12", 0x7B }
         };
 
-        public InputInjector() : this(new WindowsInputSender()) { }
-
         public InputInjector(IInputSender inputSender)
         {
             _inputSender = inputSender;

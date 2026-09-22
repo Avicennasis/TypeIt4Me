@@ -50,7 +50,7 @@ namespace TypeIt4Me
                 _logger = new FileLogger();
                 _snippetManager = new SnippetManager(_logger);
                 _hotkeyManager = new HotkeyManager();
-                _inputInjector = new InputInjector();
+                _inputInjector = new InputInjector(new WindowsInputSender());
                 _focusTracker = new FocusTracker();
                 _settingsManager = new SettingsManager(_logger);
                 _themeService = new ThemeService();
