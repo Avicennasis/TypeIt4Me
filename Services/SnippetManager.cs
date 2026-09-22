@@ -143,7 +143,7 @@ namespace TypeIt4Me.Services
                 }
 
                 // Atomic move operation
-                File.Move(tempPath, path, overwrite: true);
+                await Task.Run(() => File.Move(tempPath, path, overwrite: true));
                 tempPath = null; // Successfully moved, don't delete
             }
             catch (Exception ex)
