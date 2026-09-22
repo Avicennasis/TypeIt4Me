@@ -21,6 +21,7 @@ namespace TypeIt4Me.ViewModels
         private readonly IAutoLockService _autoLockService;
         private readonly IThemeService _themeService;
         private readonly ILogger _logger;
+        private readonly IDialogService _dialogService;
 
         [ObservableProperty]
         private string _searchText = string.Empty;
@@ -85,7 +86,8 @@ namespace TypeIt4Me.ViewModels
 
         public MainViewModel(ISnippetManager snippetManager, IHotkeyManager hotkeyManager, IInputInjector inputInjector, 
                              IFocusTracker focusTracker, ISettingsManager settingsManager, 
-                             IAutoLockService autoLockService, IThemeService themeService, ILogger logger)
+                             IAutoLockService autoLockService, IThemeService themeService, ILogger logger,
+                             IDialogService? dialogService = null)
         {
             _snippetManager = snippetManager;
             _hotkeyManager = hotkeyManager;
@@ -95,6 +97,7 @@ namespace TypeIt4Me.ViewModels
             _autoLockService = autoLockService;
             _themeService = themeService;
             _logger = logger;
+            _dialogService = dialogService ?? new DialogService();
             
             _autoLockService.OnLockTriggered += LockApp;
 
@@ -333,16 +336,10 @@ namespace TypeIt4Me.ViewModels
         [RelayCommand]
         private async Task ExportSnippets()
         {
-            var dialog = new Microsoft.Win32.SaveFileDialog
+            string? filePath = _dialogService.SaveFileDialog("JSON Files (*.json)|*.json", ".json", "snippets_export");
+            if (!string.IsNullOrEmpty(filePath))
             {
-                Filter = "JSON Files (*.json)|*.json",
-                DefaultExt = ".json",
-                FileName = "snippets_export"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                await _snippetManager.ExportSnippetsAsync(dialog.FileName);
+                await _snippetManager.ExportSnippetsAsync(filePath);
             }
         }
 
@@ -482,23 +479,18 @@ namespace TypeIt4Me.ViewModels
         [RelayCommand]
         private async Task ImportSnippets()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "JSON Files (*.json)|*.json",
-                DefaultExt = ".json"
-            };
-
-            if (dialog.ShowDialog() != true)
+            string? filePath = _dialogService.OpenFileDialog("JSON Files (*.json)|*.json", ".json");
+            if (string.IsNullOrEmpty(filePath))
                 return;
 
-            bool success = await _snippetManager.ImportSnippetsAsync(dialog.FileName);
+            bool success = await _snippetManager.ImportSnippetsAsync(filePath);
             if (success)
             {
                 ShowImportSuccessfulMessage();
                 return;
             }
 
-            await TryImportWithPinAsync(dialog.FileName);
+            await TryImportWithPinAsync(filePath);
         }
 
         private async Task TryImportWithPinAsync(string fileName)
@@ -508,9 +500,9 @@ namespace TypeIt4Me.ViewModels
             {
                 string message = "Failed to decrypt snippets. Do you want to try entering a PIN?";
                 string caption = "Import Failed";
-                var result = MessageBox.Show(message, caption, MessageBoxButton.YesNo, MessageBoxImage.Question);
+                bool userWantsToTryPin = _dialogService.ShowConfirmation(message, caption);
 
-                if (result == MessageBoxResult.No)
+                if (!userWantsToTryPin)
                     break;
 
                 char[]? inputPin = null;
@@ -536,7 +528,7 @@ namespace TypeIt4Me.ViewModels
 
         private void ShowImportSuccessfulMessage()
         {
-            MessageBox.Show("Import Successful!", "Import", MessageBoxButton.OK, MessageBoxImage.Information);
+            _dialogService.ShowInformation("Import Successful!", "Import");
         }
         
         public event Action<Action<char[]?>> RequestPinInput;
