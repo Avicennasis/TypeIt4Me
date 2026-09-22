@@ -130,5 +130,173 @@ namespace TypeIt4Me.Tests
             Assert.False(viewModel.IsLocked);
             Assert.True(fakeAutoLockService.UpdateLastActivityCalled);
         }
+
+        [Fact]
+        public async System.Threading.Tasks.Task SearchText_NullOrWhiteSpace_ReturnsAllSnippets()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "Alpha", Category = "CatA" });
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "Beta", Category = "CatB" });
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger()
+            );
+
+            // Filter first to narrow list
+            viewModel.SearchText = "Alpha";
+            await System.Threading.Tasks.Task.Delay(500);
+            Assert.Single(viewModel.FilteredSnippets);
+
+            // Act - Set to empty string
+            viewModel.SearchText = "";
+            await System.Threading.Tasks.Task.Delay(500);
+            Assert.Equal(2, viewModel.FilteredSnippets.Count);
+
+            // Act - Set to whitespace
+            viewModel.SearchText = "   ";
+            await System.Threading.Tasks.Task.Delay(500);
+            Assert.Equal(2, viewModel.FilteredSnippets.Count);
+
+            // Act - Set to null
+#pragma warning disable CS8625
+            viewModel.SearchText = null;
+#pragma warning restore CS8625
+            await System.Threading.Tasks.Task.Delay(500);
+            Assert.Equal(2, viewModel.FilteredSnippets.Count);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task PerformFiltering_HandlesNullSnippetsInCollection()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "Alpha", Category = "CatA" });
+#pragma warning disable CS8625
+            fakeSnippetManager.Snippets.Add(null);
+#pragma warning restore CS8625
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "Beta", Category = "CatB" });
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger()
+            );
+
+            // Act
+            viewModel.SearchText = "Alpha";
+            await System.Threading.Tasks.Task.Delay(500);
+
+            // Assert
+            Assert.Single(viewModel.FilteredSnippets);
+            Assert.Equal("Alpha", viewModel.FilteredSnippets[0].Name);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task PerformFiltering_HandlesNullOrEmptyNameAndCategory()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+#pragma warning disable CS8625
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = null, Category = "CatA" });
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "Beta", Category = null });
+#pragma warning restore CS8625
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "", Category = "" });
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger()
+            );
+
+            // Act - Search matching Category of item with null Name
+            viewModel.SearchText = "CatA";
+            await System.Threading.Tasks.Task.Delay(500);
+
+            // Assert
+            Assert.Single(viewModel.FilteredSnippets);
+            Assert.Equal("CatA", viewModel.FilteredSnippets[0].Category);
+
+            // Act - Search matching Name of item with null Category
+            viewModel.SearchText = "Beta";
+            await System.Threading.Tasks.Task.Delay(500);
+
+            // Assert
+            Assert.Single(viewModel.FilteredSnippets);
+            Assert.Equal("Beta", viewModel.FilteredSnippets[0].Name);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task SearchText_DebounceCancellation_OnlyAppliesLatestFilter()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "Alpha", Category = "CatA" });
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "Beta", Category = "CatB" });
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger()
+            );
+
+            // Act - Trigger rapid updates within debounce window (300ms)
+            viewModel.SearchText = "Alpha";
+            await System.Threading.Tasks.Task.Delay(100); // Less than debounce duration
+            viewModel.SearchText = "Beta";
+            await System.Threading.Tasks.Task.Delay(500); // Allow second search to finish
+
+            // Assert
+            Assert.Single(viewModel.FilteredSnippets);
+            Assert.Equal("Beta", viewModel.FilteredSnippets[0].Name);
+        }
+
+        [Fact]
+        public void Snippets_CollectionChanged_RefreshesFilteredSnippets()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger()
+            );
+
+            Assert.Empty(viewModel.FilteredSnippets);
+
+            // Act - Add snippet directly to manager collection
+            fakeSnippetManager.Snippets.Add(new Models.Snippet { Name = "Gamma", Category = "Greek" });
+
+            // Assert - Synchronous CollectionChanged trigger should refresh FilteredSnippets
+            Assert.Single(viewModel.FilteredSnippets);
+            Assert.Equal("Gamma", viewModel.FilteredSnippets[0].Name);
+        }
     }
 }
