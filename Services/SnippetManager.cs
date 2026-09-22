@@ -154,16 +154,23 @@ namespace TypeIt4Me.Services
             finally
             {
                 // Clean up temp file if it still exists (operation failed)
-                if (tempPath != null && File.Exists(tempPath))
+                if (tempPath != null)
                 {
-                    try
+                    string fileToDelete = tempPath;
+                    await Task.Run(() =>
                     {
-                        File.Delete(tempPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Failed to delete temporary file {tempPath}: {ex.GetType().FullName}");
-                    }
+                        try
+                        {
+                            if (File.Exists(fileToDelete))
+                            {
+                                File.Delete(fileToDelete);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to delete temporary file {fileToDelete}: {ex.GetType().FullName}");
+                        }
+                    });
                 }
 
                 _fileLock.Release();
