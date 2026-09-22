@@ -130,5 +130,195 @@ namespace TypeIt4Me.Tests
             Assert.False(viewModel.IsLocked);
             Assert.True(fakeAutoLockService.UpdateLastActivityCalled);
         }
+
+        [Fact]
+        public async System.Threading.Tasks.Task ImportSnippets_WhenDialogCancelled_DoesNotImport()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var fakeDialogService = new FakeDialogService
+            {
+                OpenFileDialogResult = null
+            };
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger(),
+                fakeDialogService
+            );
+
+            // Act
+            await viewModel.ImportSnippetsCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Null(fakeSnippetManager.LastImportFilePath);
+            Assert.Empty(fakeDialogService.InformationMessages);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task ImportSnippets_WhenUnencryptedImportSucceeds_ShowsSuccessMessage()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager
+            {
+                ImportResult = true
+            };
+            var fakeDialogService = new FakeDialogService
+            {
+                OpenFileDialogResult = "snippets.json"
+            };
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger(),
+                fakeDialogService
+            );
+
+            // Act
+            await viewModel.ImportSnippetsCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal("snippets.json", fakeSnippetManager.LastImportFilePath);
+            Assert.Null(fakeSnippetManager.LastImportPin);
+            Assert.Contains("Import Successful!", fakeDialogService.InformationMessages);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task ImportSnippets_WhenImportFailsAndUserDeclinesPinPrompt_DoesNotPromptPin()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager
+            {
+                ImportResult = false
+            };
+            var fakeDialogService = new FakeDialogService
+            {
+                OpenFileDialogResult = "encrypted.json",
+                ShowConfirmationResult = false
+            };
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger(),
+                fakeDialogService
+            );
+
+            bool pinRequested = false;
+            viewModel.RequestPinInput += callback => pinRequested = true;
+
+            // Act
+            await viewModel.ImportSnippetsCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal("encrypted.json", fakeSnippetManager.LastImportFilePath);
+            Assert.Null(fakeSnippetManager.LastImportPin);
+            Assert.False(pinRequested);
+            Assert.Contains("Failed to decrypt snippets. Do you want to try entering a PIN?", fakeDialogService.ConfirmationMessages);
+            Assert.Empty(fakeDialogService.InformationMessages);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task ImportSnippets_WhenImportFailsAndUserEntersValidPin_SuccessfullyImportsWithPin()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager
+            {
+                ImportHandler = (path, pin) => pin != null && new string(pin) == "1234"
+            };
+            var fakeDialogService = new FakeDialogService
+            {
+                OpenFileDialogResult = "encrypted.json",
+                ShowConfirmationResult = true
+            };
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger(),
+                fakeDialogService
+            );
+
+            viewModel.RequestPinInput += callback => callback(new char[] { '1', '2', '3', '4' });
+
+            // Act
+            await viewModel.ImportSnippetsCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal("encrypted.json", fakeSnippetManager.LastImportFilePath);
+            Assert.Equal("1234", fakeSnippetManager.LastImportPin);
+            Assert.Contains("Import Successful!", fakeDialogService.InformationMessages);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task ImportSnippets_WhenImportFailsAndUserEntersInvalidPinThenCancels_AttemptsImportWithPin()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager
+            {
+                ImportHandler = (path, pin) => false
+            };
+            var fakeDialogService = new FakeDialogService
+            {
+                OpenFileDialogResult = "encrypted.json",
+                ShowConfirmationResult = true
+            };
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger(),
+                fakeDialogService
+            );
+
+            int pinPromptCount = 0;
+            viewModel.RequestPinInput += callback =>
+            {
+                pinPromptCount++;
+                if (pinPromptCount == 1)
+                {
+                    callback(new char[] { 'w', 'r', 'o', 'n', 'g' });
+                }
+                else
+                {
+                    callback(Array.Empty<char>());
+                }
+            };
+
+            // Act
+            await viewModel.ImportSnippetsCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal("encrypted.json", fakeSnippetManager.LastImportFilePath);
+            Assert.Equal("wrong", fakeSnippetManager.LastImportPin);
+            Assert.Empty(fakeDialogService.InformationMessages);
+        }
     }
 }
