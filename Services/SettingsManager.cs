@@ -81,7 +81,7 @@ namespace TypeIt4Me.Services
                 }
                 
                 // Move is atomic on same volume
-                File.Move(tempPath, path, overwrite: true);
+                await Task.Run(() => File.Move(tempPath, path, overwrite: true));
             }
             catch (Exception ex)
             {
