@@ -29,7 +29,7 @@ namespace TypeIt4Me.Services
         {
             try
             {
-                while (!token.IsCancellationRequested)
+                while (true)
                 {
                     IntPtr foreground = _getForegroundWindow();
                     if (foreground != IntPtr.Zero && foreground != _myWindowHandle)
