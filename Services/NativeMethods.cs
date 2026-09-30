@@ -26,6 +26,9 @@ namespace TypeIt4Me.Services
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
+        [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
         [StructLayout(LayoutKind.Sequential)]
         public struct INPUT
         {

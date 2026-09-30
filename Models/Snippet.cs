@@ -24,7 +24,10 @@ namespace TypeIt4Me.Models
         public string Content
         {
             get => _content;
-            set => SetProperty(ref _content, value);
+            set
+            {
+                if (SetProperty(ref _content, value)) OnPropertyChanged(nameof(Preview));
+            }
         }
 
         public string Category
@@ -36,13 +39,34 @@ namespace TypeIt4Me.Models
         public Key TriggerKey
         {
             get => _triggerKey;
-            set => SetProperty(ref _triggerKey, value);
+            set
+            {
+                if (SetProperty(ref _triggerKey, value)) OnPropertyChanged(nameof(HotkeyLabel));
+            }
         }
 
         public ModifierKeys TriggerModifiers
         {
             get => _triggerModifiers;
-            set => SetProperty(ref _triggerModifiers, value);
+            set
+            {
+                if (SetProperty(ref _triggerModifiers, value)) OnPropertyChanged(nameof(HotkeyLabel));
+            }
+        }
+
+        [JsonIgnore]
+        public string HotkeyLabel => Services.HotkeyDisplay.Format(TriggerKey, TriggerModifiers);
+
+        [JsonIgnore]
+        public string Preview
+        {
+            get
+            {
+                string content = Content ?? string.Empty;
+                // Bound preview work even for very large imported snippets.
+                string prefix = content.Substring(0, Math.Min(content.Length, 240));
+                return string.Join(" ", prefix.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            }
         }
     }
 }

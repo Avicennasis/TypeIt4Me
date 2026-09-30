@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <ApplicationManifest>../../app.manifest</ApplicationManifest>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>TypeIt4Me.UiReview</AssemblyName>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="../../TypeIt4Me.csproj"/>
+        <Compile Include="../../TypeIt4Me.Tests/Fakes/Fake*.cs" Link="Fakes/%(Filename)%(Extension)"/>
+    </ItemGroup>
+</Project>
