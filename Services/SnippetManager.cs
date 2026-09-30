@@ -259,6 +259,7 @@ namespace TypeIt4Me.Services
             catch (Exception ex)
             {
                 _logger.LogError("Background save failed after AddSnippet", ex);
+                throw; // The editor must be able to report that persistence failed.
             }
         }
 
@@ -272,6 +273,7 @@ namespace TypeIt4Me.Services
             catch (Exception ex)
             {
                 _logger.LogError("Background save failed after RemoveSnippet", ex);
+                throw; // Let the UI restore the row and offer a retry.
             }
         }
 

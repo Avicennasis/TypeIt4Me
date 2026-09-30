@@ -69,6 +69,31 @@ namespace TypeIt4Me.Tests
             }
         }
 
+        [Fact]
+        public async Task LegacySettings_UsePlacementDefaultsWithoutMigration()
+        {
+            await File.WriteAllTextAsync(_testPath, "{\"AlwaysOnTop\":false,\"IsDarkMode\":true}");
+            await _manager.LoadSettingsAsync();
+            Assert.False(_manager.Settings.AlwaysOnTop); Assert.True(_manager.Settings.IsDarkMode);
+            Assert.Null(_manager.Settings.WindowLeft); Assert.Null(_manager.Settings.WindowTop);
+            Assert.Equal(420, _manager.Settings.WindowWidth); Assert.Equal(620, _manager.Settings.WindowHeight);
+            Assert.Equal(300, _manager.Settings.MiniWidth); Assert.Equal(300, _manager.Settings.MiniHeight);
+        }
+
+        [Fact]
+        public async Task Placement_SaveAndReloadPreservesBothWindowModes()
+        {
+            _manager.Settings.WindowLeft = -1200; _manager.Settings.WindowTop = 80;
+            _manager.Settings.WindowWidth = 480; _manager.Settings.WindowHeight = 700;
+            _manager.Settings.MiniWidth = 280; _manager.Settings.MiniHeight = 240;
+            await _manager.SaveSettingsAsync();
+            var reloaded = new TestSettingsManager(_logger, _testPath);
+            await reloaded.LoadSettingsAsync();
+            Assert.Equal(-1200, reloaded.Settings.WindowLeft); Assert.Equal(80, reloaded.Settings.WindowTop);
+            Assert.Equal(480, reloaded.Settings.WindowWidth); Assert.Equal(700, reloaded.Settings.WindowHeight);
+            Assert.Equal(280, reloaded.Settings.MiniWidth); Assert.Equal(240, reloaded.Settings.MiniHeight);
+        }
+
         // ===================================================================
         // Save error tests (2 methods)
         // ===================================================================

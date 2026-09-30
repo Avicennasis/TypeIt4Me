@@ -1,83 +1,101 @@
-<Window x:Class="TypeIt4Me.Views.SnippetEditorWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:TypeIt4Me.ViewModels"
-        mc:Ignorable="d"
-        Title="Snippet Editor" Height="400" Width="500"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
-    <Window.Resources>
-        <Style TargetType="TextBox">
-            <Setter Property="Margin" Value="0,0,0,10"/>
-            <Setter Property="Padding" Value="5"/>
-        </Style>
-        <Style TargetType="TextBlock">
-            <Setter Property="Margin" Value="0,0,0,5"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
-    </Window.Resources>
-    
-    <Grid Margin="15">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ui="clr-namespace:TypeIt4Me.Views.Controls" x:Class="TypeIt4Me.Views.SnippetEditorWindow" Title="Snippet editor &#xB7; TypeIt4Me" Width="620" Height="720" MinWidth="460" MinHeight="520" Style="{StaticResource AppWindow}" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Window.InputBindings>
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveCommand}"/>
+        <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
+    </Window.InputBindings>
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
-        <!-- Name -->
-        <TextBlock Text="Name" Grid.Row="0"/>
-        <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1"/>
-
-        <!-- Category & Hotkey -->
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="15"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            
-            <StackPanel Grid.Column="0">
-                <TextBlock Text="Category (Optional)"/>
-                <TextBox Text="{Binding Category}"/>
-            </StackPanel>
-
-            <StackPanel Grid.Column="2">
-                <TextBlock Text="Hotkey"/>
-                <Grid>
+        <StackPanel Margin="24,24,24,16">
+            <TextBlock Text="{Binding EditorTitle}" Style="{StaticResource TitleText}"/>
+            <TextBlock Text="A little text, ready whenever you need it." Style="{StaticResource HelperText}" Margin="0,6,0,0"/>
+        </StackPanel>
+        <ScrollViewer x:Name="EditorContent" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,0,24,16">
+            <StackPanel>
+                <Label Content="_Name" Target="{Binding ElementName=NameBox}" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Tag="For example, Work email" AutomationProperties.Name="Snippet name" Margin="0,0,0,16"/>
+                <Grid Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="HotkeyBox" 
-                             PreviewKeyDown="HotkeyBox_PreviewKeyDown" 
-                             IsReadOnly="True"
-                             Text="{Binding TriggerKey, StringFormat='Key: {0}'}" 
-                             d:Text="Ctrl+Alt+T"/>
-                    <Button Content="X" Command="{Binding ClearHotkeyCommand}" Grid.Column="1" Width="20" Height="20" Margin="5,0,0,10" VerticalAlignment="Top"/>
+                    <StackPanel>
+                        <Label Content="_Category (optional)" Target="{Binding ElementName=CategoryBox}" Style="{StaticResource FieldLabel}"/>
+                        <TextBox x:Name="CategoryBox" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" Tag="For example, Work" AutomationProperties.Name="Category"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <Label Content="_Global hotkey (optional)" Target="{Binding ElementName=HotkeyBox}" Style="{StaticResource FieldLabel}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="HotkeyBox" IsReadOnly="True" Text="{Binding HotkeyLabel, Mode=OneWay}" PreviewKeyDown="HotkeyBox_PreviewKeyDown" AutomationProperties.Name="Global hotkey" AutomationProperties.HelpText="Press a key combination. Tab leaves this field. Use Clear hotkey to remove the assignment." FontSize="{StaticResource TypeCaption}"/>
+                            <Button Grid.Column="1" Command="{Binding ClearHotkeyCommand}" Style="{StaticResource IconButton}" ToolTip="Clear hotkey" AutomationProperties.Name="Clear hotkey" Margin="4,0,0,0">
+                                <ui:SymbolIcon Data="{StaticResource IconClose}" Width="12" Height="12"/>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
                 </Grid>
-                <TextBlock Text="{Binding TriggerModifiers, StringFormat='Modifiers: {0}'}" FontSize="10" Foreground="Gray" Margin="0,-8,0,0"/>
-
+                <TextBlock Text="Use Ctrl, Alt, or Shift with a key to avoid interrupting normal typing. Windows may reserve some combinations." Style="{StaticResource HelperText}" Margin="0,0,0,16"/>
+                <Label Content="_Text to insert" Target="{Binding ElementName=ContentBox}" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="ContentBox" Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" Tag="Type the words you want to reuse&#x2026;" AcceptsReturn="True" AcceptsTab="False" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="180" MinHeight="140" VerticalContentAlignment="Top" FontFamily="{StaticResource CodeFont}" FontSize="13" AutomationProperties.Name="Text to insert" AutomationProperties.HelpText="Multiline snippet content. Tab moves to the next control. Use the special commands reference below for key presses."/>
+                <TextBlock Text="{Binding CharacterCount}" FontSize="{StaticResource TypeCaption}" Foreground="{DynamicResource SecondaryBrush}" HorizontalAlignment="Right" Margin="0,6,0,12"/>
+                <Expander x:Name="CommandReference" Header="Special commands &amp; examples" AutomationProperties.Name="Show special command reference">
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Mix text with key presses" Style="{StaticResource SectionText}"/>
+                            <TextBlock Text="Commands use braces. Unknown commands are typed literally. Modifier commands send a key press; they do not hold a modifier across the next letter." Style="{StaticResource HelperText}" Margin="0,8,0,12"/>
+                            <TextBlock Text="{}{TAB}   {ENTER}   {ESC}   {BACKSPACE}&#10;{UP}   {DOWN}   {LEFT}   {RIGHT}&#10;{HOME}   {END}   {F1} &#x2026; {F12}" FontFamily="{StaticResource CodeFont}" FontSize="{StaticResource TypeCaption}" TextWrapping="Wrap"/>
+                            <TextBlock Text="Hello{TAB}World{ENTER}" FontFamily="{StaticResource CodeFont}" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,12,0,4"/>
+                            <TextBlock Text="Types Hello, moves to the next field, types World, and presses Enter. {SLEEP 500} adds a half-second pause (1&#x2013;60,000 ms)." Style="{StaticResource HelperText}"/>
+                        </StackPanel>
+                    </Border>
+                </Expander>
             </StackPanel>
-        </Grid>
-
-        <!-- Content -->
-        <TextBlock Text="Content" Grid.Row="3"/>
-        <TextBox Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" Grid.Row="4" 
-                 Height="150" 
-                 AcceptsReturn="True" 
-                 AcceptsTab="True" 
-                 VerticalScrollBarVisibility="Auto"
-                 TextWrapping="Wrap"/>
-
-        <!-- Buttons -->
-        <StackPanel Orientation="Horizontal" Grid.Row="5" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Button Content="Cancel" Command="{Binding CancelCommand}" Width="80" Height="30" Margin="0,0,10,0"/>
-            <Button Content="Save" Command="{Binding SaveCommand}" Width="80" Height="30" IsDefault="True"/>
-        </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="{Binding ValidationMessage}" TextWrapping="Wrap" Margin="0,0,0,10" AutomationProperties.LiveSetting="Polite">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource SecondaryBrush}"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasChanges}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ValidationMessage}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <DockPanel x:Name="EditorActions" Grid.Row="1">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Content="_Cancel" Command="{Binding CancelCommand}" Margin="0,0,8,0"/>
+                        <Button x:Name="SaveButton" Content="_Save snippet" IsDefault="True" Command="{Binding SaveCommand}" Style="{StaticResource AccentButton}" ToolTip="Save snippet (Ctrl+S)"/>
+                    </StackPanel>
+                    <TextBlock Text="Unsaved changes" FontSize="{StaticResource TypeCaption}" Foreground="{DynamicResource SecondaryBrush}" VerticalAlignment="Center" Visibility="{Binding HasChanges, Converter={StaticResource BoolToVis}}"/>
+                </DockPanel>
+                <StackPanel x:Name="DiscardPanel" Grid.Row="1" Visibility="Collapsed">
+                    <TextBlock Text="Discard unsaved changes?" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive"/>
+                    <TextBlock Text="The changes in this editor will be lost." Style="{StaticResource HelperText}" Margin="0,4,0,12"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="KeepEditingButton" Content="_Keep editing" Click="KeepEditing_Click" Margin="0,0,8,0"/>
+                        <Button Content="_Discard changes" Click="Discard_Click" Style="{StaticResource DangerButton}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

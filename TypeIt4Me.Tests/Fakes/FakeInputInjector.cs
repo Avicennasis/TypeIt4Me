@@ -5,6 +5,7 @@ namespace TypeIt4Me.Tests.Fakes
 {
     public class FakeInputInjector : IInputInjector
     {
-        public Task TypeTextAsync(string text) => Task.CompletedTask;
+        public string? LastText { get; private set; }
+        public Task TypeTextAsync(string text) { LastText = text; return Task.CompletedTask; }
     }
 }

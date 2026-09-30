@@ -45,6 +45,12 @@ namespace TypeIt4Me.Services
                         Settings.IsDarkMode = loaded.IsDarkMode;
                         Settings.AutoLockMinutes = loaded.AutoLockMinutes;
                         Settings.LockOnRestore = loaded.LockOnRestore;
+                        Settings.WindowLeft = loaded.WindowLeft;
+                        Settings.WindowTop = loaded.WindowTop;
+                        Settings.WindowWidth = loaded.WindowWidth;
+                        Settings.WindowHeight = loaded.WindowHeight;
+                        Settings.MiniWidth = loaded.MiniWidth;
+                        Settings.MiniHeight = loaded.MiniHeight;
                     }
                 }
                 catch (FileNotFoundException)

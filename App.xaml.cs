@@ -1,468 +1,293 @@
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
+using TypeIt4Me.Models;
 using TypeIt4Me.Services;
 using TypeIt4Me.ViewModels;
 using TypeIt4Me.Views;
 
-namespace TypeIt4Me
+namespace TypeIt4Me;
+
+public partial class App : Application
 {
-    public partial class App : Application
+    private ILogger? _logger;
+    private ISnippetManager? _snippetManager;
+    private IHotkeyManager? _hotkeyManager;
+    private IFocusTracker? _focusTracker;
+    private ISettingsManager? _settingsManager;
+    private IAutoLockService? _autoLockService;
+    private IThemeService? _themeService;
+    private MainViewModel? _mainViewModel;
+    private MainWindow? _mainWindow;
+    private SettingsWindow? _settingsWindow;
+    private HelpWindow? _helpWindow;
+    private bool _unlocking;
+
+    public App()
     {
-        private ILogger? _logger;
-        private ISnippetManager? _snippetManager;
-        private IHotkeyManager? _hotkeyManager;
-        private IInputInjector? _inputInjector;
-        private IFocusTracker? _focusTracker;
-        private ISettingsManager? _settingsManager;
-        private IAutoLockService? _autoLockService;
-        private IThemeService? _themeService;
-
-        private MainViewModel? _mainViewModel;
-        private MainWindow? _mainWindow;
-
-        public App()
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        DispatcherUnhandledException += (_, e) =>
         {
-            // Global Exception Handling
-            this.DispatcherUnhandledException += App_DispatcherUnhandledException;
-        }
+            _logger?.LogError("Unhandled UI exception", e.Exception);
+            e.Handled = true;
+            // Do not put snippet text, paths, or exception messages into error dialogs.
+            new DialogService().ShowInformation("Something went wrong. Your saved collection has not been reset. Check error.log in the TypeIt4Me data folder for details.", "TypeIt4Me could not complete that action");
+        };
+    }
 
-        private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+        try
         {
-            // Security: Show generic error to user, log detailed info to file only
-            string userMessage = $"An unexpected error occurred: {e.Exception.Message}\n\nPlease check the error log for details.";
-
-            e.Handled = true; // Prevent crash if possible
-
-            MessageBox.Show(userMessage, "TypeIt4Me Error", MessageBoxButton.OK, MessageBoxImage.Error);
-
-            // Log detailed information to file (secure location)
-            _logger?.LogError("Unhandled Dispatcher Exception", e.Exception);
-        }
-
-        protected override async void OnStartup(StartupEventArgs e)
-        {
-            base.OnStartup(e);
-
-            try
+            _logger = new FileLogger();
+            _snippetManager = new SnippetManager(_logger);
+            _hotkeyManager = new HotkeyManager();
+            _focusTracker = new FocusTracker();
+            _settingsManager = new SettingsManager(_logger);
+            _themeService = new ThemeService();
+            await _settingsManager.LoadSettingsAsync();
+            _themeService.SetTheme(_settingsManager.Settings.IsDarkMode);
+            if (string.IsNullOrEmpty(_settingsManager.Settings.PinHash)) await _snippetManager.LoadSnippetsAsync();
+            _autoLockService = new AutoLockService(_settingsManager);
+            _mainViewModel = new MainViewModel(_snippetManager, _hotkeyManager, new InputInjector(new WindowsInputSender()),
+                _focusTracker, _settingsManager, _autoLockService, _themeService, _logger);
+            await _mainViewModel.Initialization;
+            _mainWindow = new MainWindow { DataContext = _mainViewModel };
+            MainWindow = _mainWindow;
+            _mainWindow.RestorePlacement(_settingsManager.Settings, () => _ = _settingsManager.SaveSettingsAsync());
+            _mainViewModel.RequestSnippetEditor += EditSnippet;
+            _mainViewModel.RequestPinSet += SetPin;
+            _mainViewModel.RequestPinInput += RequestPinInput;
+            _mainViewModel.RequestLockState += ApplyLockState;
+            _mainViewModel.RequestUnlock += Unlock;
+            _mainViewModel.RequestInput += RequestInput;
+            _mainViewModel.RequestShowHelp += ShowHelp;
+            _mainViewModel.RequestShowSettings += ShowSettings;
+            _snippetManager.Snippets.CollectionChanged += (_, _) => ReloadHotkeys();
+            _mainWindow.SourceInitialized += (_, _) =>
             {
-                // 1. Initialize Services
-                _logger = new FileLogger();
-                _snippetManager = new SnippetManager(_logger);
-                _hotkeyManager = new HotkeyManager();
-                _inputInjector = new InputInjector(new WindowsInputSender());
-                _focusTracker = new FocusTracker();
-                _settingsManager = new SettingsManager(_logger);
-                _themeService = new ThemeService();
+                var handle = new WindowInteropHelper(_mainWindow).Handle;
+                _hotkeyManager.Initialize(handle); _focusTracker.Start(handle); ReloadHotkeys();
+            };
+            InputManager.Current.PreProcessInput += TrackActivity;
+            if (_mainViewModel.HasPin) _mainViewModel.LockApp();
+            _mainWindow.Show();
+            if (_mainViewModel.IsLocked) Unlock();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError("Startup failed", ex);
+            // Native fallback is intentional if the resource system itself cannot start.
+            MessageBox.Show("TypeIt4Me could not start. Check the error log in %AppData%\\TypeIt4Me. No data has been reset.", "TypeIt4Me", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
 
-                // 2. Load Data
-                await _settingsManager.LoadSettingsAsync();
+    private void TrackActivity(object sender, PreProcessInputEventArgs e)
+    {
+        if (e.StagingItem.Input is KeyEventArgs or MouseButtonEventArgs or MouseWheelEventArgs) _autoLockService?.UpdateLastActivity();
+    }
+
+    private async void EditSnippet(Snippet snippet)
+    {
+        if (_mainViewModel == null || _snippetManager == null || _mainViewModel.IsLocked) return;
+        var vm = new SnippetEditorViewModel(snippet);
+        var window = new SnippetEditorWindow { DataContext = vm, Owner = DialogService.ActiveOwner ?? _mainWindow };
+        _mainViewModel.IsDialogOpen = true;
+        try
+        {
+            window.ShowDialog();
+            if (!window.Saved || _mainViewModel.IsLocked) return;
+            using var operation = _mainViewModel.BeginDataOperation();
+            if (!_snippetManager.Snippets.Contains(snippet)) await _snippetManager.AddSnippet(snippet);
+            else await _snippetManager.SaveSnippetsAsync();
+            _mainViewModel.RefreshAfterEdit(); ReloadHotkeys();
+            _mainViewModel.ReportStatus("Snippet saved.");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError("Snippet save failed", ex);
+            _mainViewModel.RefreshAfterEdit();
+            _mainViewModel.ReportStatus("Could not save changes. Keep TypeIt4Me open and try saving again.", true);
+            new DialogService().ShowInformation("Could not save the snippet. Check the data folder and error log before closing TypeIt4Me.", "Could not save snippet");
+        }
+        finally { _mainViewModel.IsDialogOpen = false; }
+    }
+
+    private void ReloadHotkeys()
+    {
+        if (_hotkeyManager == null || _snippetManager == null || _mainViewModel == null || _mainWindow == null) return;
+        if (new WindowInteropHelper(_mainWindow).Handle == IntPtr.Zero) return;
+        _hotkeyManager.ClearRegistrations();
+        if (_mainViewModel.IsLocked) return;
+        int failed = 0;
+        foreach (var snippet in _snippetManager.Snippets)
+        {
+            if (snippet.TriggerKey == Key.None) continue;
+            int id = _hotkeyManager.Register(snippet.TriggerKey, snippet.TriggerModifiers,
+                () => { if (_mainViewModel.TriggerSnippetCommand.CanExecute(snippet)) _mainViewModel.TriggerSnippetCommand.Execute(snippet); }, snippet.Id);
+            if (id == 0) failed++;
+        }
+        if (failed > 0) _mainViewModel.ReportStatus($"{failed} hotkey{(failed == 1 ? " is" : "s are")} unavailable. Edit the shortcuts to resolve conflicts.", true);
+    }
+
+    private async Task<string?> ValidateCurrentPin(char[] pin)
+    {
+        if (_settingsManager == null) return "PIN settings are unavailable.";
+        if (string.IsNullOrEmpty(_settingsManager.Settings.PinSalt)) return "PIN metadata is incomplete. Restore settings.json from a backup; your data has not been reset.";
+        string hash = await Task.Run(() => CryptoService.HashPin(pin, _settingsManager.Settings.PinSalt));
+        return PinHashComparison.Equal(hash, _settingsManager.Settings.PinHash) ? null : "That PIN did not match. Please try again.";
+    }
+
+    private void Unlock()
+    {
+        if (_unlocking || _mainViewModel == null || _settingsManager == null || _snippetManager == null) return;
+        if (!_mainViewModel.HasPin) { _mainViewModel.UnlockApp(); return; }
+        if (!_mainViewModel.UnlockCommand.CanExecute(null)) return;
+        _unlocking = true; _mainViewModel.IsDialogOpen = true;
+        try
+        {
+            var window = new PinEntryWindow("Unlock TypeIt4Me", validate: async pin =>
+            {
+                _autoLockService?.UpdateLastActivity();
+                string? error = await ValidateCurrentPin(pin);
+                if (error != null) return error;
+                _snippetManager.SetPin(pin);
                 await _snippetManager.LoadSnippetsAsync();
-
-                // AutoLock needs settings loaded
-                _autoLockService = new AutoLockService(_settingsManager);
-
-                // 3. Initialize ViewModel (Inject Services)
-                _mainViewModel = new MainViewModel(_snippetManager, _hotkeyManager, _inputInjector,
-                                                 _focusTracker, _settingsManager,
-                                                 _autoLockService, _themeService, _logger);
-
-                _mainViewModel.RequestSnippetEditor += MainViewModel_RequestSnippetEditor;
-                _mainViewModel.RequestPinSet += MainViewModel_RequestPinSet;
-
-                _mainViewModel.RequestPinInput += MainViewModel_RequestPinInput;
-                _mainViewModel.RequestLockState += MainViewModel_RequestLockState;
-                _mainViewModel.RequestUnlock += MainViewModel_RequestUnlock;
-                _mainViewModel.RequestInput += MainViewModel_RequestInput;
-                _mainViewModel.RequestShowHelp += MainViewModel_RequestShowHelp;
-
-                // 4. Initialize Window
-                _mainWindow = new MainWindow
-                {
-                    DataContext = _mainViewModel
-                };
-
-                // Check PIN before showing (V3 only - requires salt)
-                if (!string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
-                {
-                    // Validate that salt exists (V3 requirement)
-                    if (string.IsNullOrEmpty(_settingsManager.Settings.PinSalt))
-                    {
-                        MessageBox.Show("PIN configuration is invalid. Please reset your PIN.", "Security Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        // Clear invalid PIN data
-                        _settingsManager.Settings.PinHash = string.Empty;
-                        _settingsManager.Settings.PinSalt = string.Empty;
-                        await _settingsManager.SaveSettingsAsync();
-                    }
-                    else
-                    {
-                        bool unlocked = false;
-                        while (!unlocked)
-                        {
-                            var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
-                            if (pinWin.ShowDialog() == true)
-                            {
-                                char[]? pinChars = null;
-                                try
-                                {
-                                    pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
-
-                                    // Validate PIN using salted hash (V3 only)
-                                    string hash = Services.CryptoService.HashPin(pinChars.AsSpan(), _settingsManager.Settings.PinSalt);
-                                    if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
-                                    {
-                                        unlocked = true;
-                                        // Set PIN in Manager for Decryption
-                                        _snippetManager.SetPin(pinChars.AsSpan());
-                                        // CRITICAL: Re-load snippets now that we have the PIN/Key
-                                        await _snippetManager.LoadSnippetsAsync();
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Invalid PIN. Please try again.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
-                                    }
-                                }
-                                finally
-                                {
-                                    if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
-                                }
-                            }
-                            else
-                            {
-                                // User cancelled the unlock (e.g. hit Cancel or Close on PIN dialog).
-                                // We should NOT Shutdown the app here, just remain locked/hidden.
-                                return; // App starts up but hidden
-                            }
-                        }
-                    }
-                }
-
-                 // Register hotkeys AFTER loading (or re-loading) snippets
-                _mainWindow.SourceInitialized += MainWindow_SourceInitialized;
-                _mainWindow.Show();
-
-                // If we re-loaded after SourceInitialized/Show, we might need to manually trigger hotkey registration if logic was there.
-                // SourceInitialized calls RegisterSnippetHotkey loop.
-                // So if we await LoadSnippetsAsync BEFORE SourceInitialized, it should be fine.
-            }
-            catch (Exception ex)
+                return null;
+            }) { Owner = _mainWindow };
+            if (window.ShowDialog() == true)
             {
-                 MessageBox.Show($"Critical Error during startup: {ex.GetType().FullName}", "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                 try
-                 {
-                     Shutdown();
-                 }
-                 catch (Exception shutdownEx)
-                 {
-                     _logger?.LogError("Error during shutdown attempt", shutdownEx);
-                 }
-                 finally
-                 {
-                     Environment.Exit(1);
-                 }
+                window.SecurePin?.Dispose(); _mainViewModel.UnlockApp(); ReloadHotkeys();
+                _mainViewModel.ReportStatus("Unlocked. Your snippets are ready.");
             }
         }
+        finally { _mainViewModel.IsDialogOpen = false; _unlocking = false; }
+    }
 
-        private void MainViewModel_RequestPinSet()
+    private void SetPin()
+    {
+        if (_settingsManager == null || _snippetManager == null || _mainViewModel == null || _mainViewModel.IsLocked) return;
+        char[]? previousPin = null;
+        using var operation = _mainViewModel.BeginDataOperation();
+        _mainViewModel.IsDialogOpen = true;
+        try
         {
-            if (_settingsManager == null) return;
-
-            var pinWin = new PinEntryWindow("Set New PIN (Minimum 4 characters)");
-            if (pinWin.ShowDialog() == true)
+            if (_mainViewModel.HasPin)
             {
-                 char[]? pinChars = null;
-                 try
-                 {
-                     pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
-
-                     // Security: Enforce minimum PIN length
-                     if (pinChars == null || pinChars.Length < 4)
-                     {
-                         MessageBox.Show("PIN must be at least 4 characters long.", "Invalid PIN", MessageBoxButton.OK, MessageBoxImage.Warning);
-                         return;
-                     }
-
-                     // Recommendation for strong PINs
-                     if (pinChars.Length < 6)
-                     {
-                         var result = MessageBox.Show(
-                             "Your PIN is short. For better security, we recommend using at least 6 characters.\n\nDo you want to continue with this PIN?",
-                             "Security Recommendation",
-                             MessageBoxButton.YesNo,
-                             MessageBoxImage.Question);
-                         if (result == MessageBoxResult.No)
-                         {
-                             return;
-                         }
-                     }
-
-                     // Generate Salt and Hash
-                     string salt = Services.CryptoService.GenerateSalt();
-                     string hash = Services.CryptoService.HashPin(pinChars.AsSpan(), salt);
-
-                     _settingsManager.Settings.PinSalt = salt;
-                     _settingsManager.Settings.PinHash = hash;
-                     _settingsManager.SaveSettingsAsync();
-
-                     // Set PIN in manager and Save (this triggers encryption)
-                     _snippetManager!.SetPin(pinChars.AsSpan());
-                     _snippetManager.SaveSnippetsAsync();
-
-                     MessageBox.Show(
-                         "PIN Set Successfully! Your snippets are now encrypted with V3 (AES-256 + HMAC-SHA256).",
-                         "Security",
-                         MessageBoxButton.OK,
-                         MessageBoxImage.Information);
-                 }
-                 finally
-                 {
-                     if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
-                 }
+                var current = new PinEntryWindow("Confirm current PIN", validate: ValidateCurrentPin) { Owner = DialogService.ActiveOwner };
+                if (current.ShowDialog() != true) return;
+                using var secure = current.SecurePin;
+                previousPin = CryptoService.SecureStringToCharArray(secure);
             }
-        }
-
-
-
-        private void MainWindow_SourceInitialized(object? sender, EventArgs e)
-        {
-            if (_mainWindow == null) return;
-
-            var helper = new WindowInteropHelper(_mainWindow);
-            var handle = helper.Handle;
-
-            // Initialize services that need HWND
-            _hotkeyManager?.Initialize(handle);
-            _focusTracker?.Start(handle);
-
-            // Register existing hotkeys
-            if (_snippetManager != null && _hotkeyManager != null)
+            var window = new PinEntryWindow("Protect your snippets", creating: true, validate: async pin =>
             {
-                var failedSnippets = new System.Collections.Generic.List<string>();
-                foreach (var snippet in _snippetManager.Snippets)
-                {
-                    if (!RegisterSnippetHotkey(snippet))
-                    {
-                        failedSnippets.Add(snippet.Name);
-                    }
-                }
-
-                if (failedSnippets.Count > 0)
-                {
-                    failedSnippets.Insert(0, "Failed to register hotkeys for the following snippets (likely conflicts):\n");
-                    string msg = string.Join("\n", failedSnippets);
-                    MessageBox.Show(msg, "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-        }
-
-        private void MainViewModel_RequestSnippetEditor(Models.Snippet snippet)
-        {
-            // If new snippet, snippet object is empty or pre-filled.
-            // If editing, it's the existing reference.
-
-            // We clone logic if we want cancel support (MVVM pattern), but for MVP modifying directly is risky but simple.
-            // Better: use a clone/copy, then update if Save=true.
-            // But SnippetEditorViewModel logic updates the object on Save.
-
-            var vm = new SnippetEditorViewModel(snippet);
-            var win = new SnippetEditorWindow
-            {
-                DataContext = vm,
-                Owner = _mainWindow
-            };
-
-            vm.RequestClose += async (result) =>
-            {
-                if (result)
-                {
-                    if (!_snippetManager!.Snippets.Contains(vm.CurrentSnippet))
-                    {
-                         await _snippetManager.AddSnippet(vm.CurrentSnippet);
-                         if (!RegisterSnippetHotkey(vm.CurrentSnippet))
-                         {
-                             MessageBox.Show("Failed to register hotkey for this snippet. Key combination may be in use.", "Hotkey Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                         }
-                    }
-                    else
-                    {
-                        await _snippetManager.SaveSnippetsAsync();
-                        // For MVP: Simplest way to update hotkeys is to re-register everything or just this one.
-                        // Since we don't track IDs easily yet, let's just unregister all and re-register all.
-                        // Efficient? No. Reliable? Yes.
-                        ReloadHotkeys();
-                    }
-                }
-                win.Close();
-            };
-
-            win.ShowDialog();
-        }
-
-        private void ReloadHotkeys()
-        {
-            if (_hotkeyManager == null || _snippetManager == null) return;
-
-            _hotkeyManager.ClearRegistrations();
-
-            var failedSnippets = new System.Collections.Generic.List<string>();
-            foreach (var snippet in _snippetManager.Snippets)
-            {
-                if (!RegisterSnippetHotkey(snippet))
-                {
-                     failedSnippets.Add(snippet.Name);
-                }
-            }
-
-            // Only warn if this was a manual reload or bulk op; for individual add, we handle separately
-            if (failedSnippets.Count > 0)
-            {
-                 MessageBox.Show($"Failed to register {failedSnippets.Count} hotkeys.", "Hotkey Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        private bool RegisterSnippetHotkey(Models.Snippet snippet)
-        {
-             if (_hotkeyManager != null && snippet.TriggerKey != System.Windows.Input.Key.None)
-             {
-                 int id = _hotkeyManager.Register(snippet.TriggerKey, snippet.TriggerModifiers, async () =>
-                 {
-                      if (_mainViewModel != null)
-                      {
-                          await Application.Current.Dispatcher.InvokeAsync(async () =>
-                          {
-                               await _mainViewModel.TriggerSnippetCommand.ExecuteAsync(snippet);
-                          });
-                      }
-                 }, snippet.Id);
-
-                 return id != 0;
-             }
-             return true; // No hotkey to register count as success
-        }
-
-        private void MainViewModel_RequestPinInput(Action<char[]?> callback)
-        {
-            var pinWin = new PinEntryWindow("Enter PIN for Import");
-            if (pinWin.ShowDialog() == true)
-            {
-                char[]? pinChars = null;
+                if (_mainViewModel.IsLocked) return "TypeIt4Me locked while this dialog was open. Cancel and unlock before setting a PIN.";
                 try
                 {
-                    pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
-                    callback(pinChars);
+                    var salt = CryptoService.GenerateSalt();
+                    var hash = await Task.Run(() => CryptoService.HashPin(pin, salt));
+                    _snippetManager.SetPin(pin);
+                    await _snippetManager.SaveSnippetsAsync();
+                    _settingsManager.Settings.PinSalt = salt; _settingsManager.Settings.PinHash = hash;
+                    await _settingsManager.SaveSettingsAsync();
+                    return null;
                 }
-                finally
+                catch (Exception ex)
                 {
-                    if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
+                    _snippetManager.SetPin(previousPin);
+                    _logger?.LogError("PIN save failed", ex);
+                    return "Could not save PIN protection. Check the data folder and try again.";
                 }
-            }
-            else
+            }) { Owner = DialogService.ActiveOwner };
+            if (window.ShowDialog() == true)
             {
-                callback(Array.Empty<char>());
+                window.SecurePin?.Dispose(); _mainViewModel.RefreshSecurityState();
+                _mainViewModel.ReportStatus("PIN protection is on. Snippets and exports are encrypted.");
             }
         }
-
-        private void MainViewModel_RequestLockState(bool isLocked)
+        finally
         {
-            if (isLocked)
+            if (previousPin != null) Array.Clear(previousPin);
+            _mainViewModel.IsDialogOpen = false;
+        }
+    }
+
+    private void RequestPinInput(Action<char[]?> callback)
+    {
+        var window = new PinEntryWindow("Enter PIN") { Owner = DialogService.ActiveOwner };
+        char[]? pin = null;
+        bool wasDialogOpen = _mainViewModel?.IsDialogOpen == true;
+        if (_mainViewModel != null) _mainViewModel.IsDialogOpen = true;
+        try
+        {
+            if (window.ShowDialog() == true)
             {
-                _mainWindow?.Hide();
-                // We should ensure Tray Icon is visible (it usually is)
+                using var secure = window.SecurePin;
+                pin = CryptoService.SecureStringToCharArray(secure); callback(pin);
             }
-            else
-            {
-                _mainWindow?.Show();
-            }
+            else callback(null);
         }
-
-        private void MainViewModel_RequestUnlock()
+        finally
         {
-             // No PIN set? Just unlock.
-             if (string.IsNullOrEmpty(_settingsManager.Settings.PinHash))
-             {
-                 _mainViewModel.UnlockApp();
-                 return;
-             }
-
-             // Prompt for PIN to unlock
-             bool authenticated = false;
-
-             while (!authenticated)
-             {
-                 var pinWin = new PinEntryWindow("Unlock TypeIt4Me");
-                 if (pinWin.ShowDialog() != true)
-                 {
-                     // User cancelled unlock. Keep locked? Or Exit?
-                     // If called from Restore, just keep hidden/locked.
-                     break;
-                 }
-
-                 char[]? pinChars = null;
-                 try
-                 {
-                     pinChars = Services.CryptoService.SecureStringToCharArray(pinWin.SecurePin);
-
-                     // Use Salted Check
-                     string hash = Services.CryptoService.HashPin(pinChars.AsSpan(), _settingsManager.Settings.PinSalt);
-                     if (IsHashEqual(hash, _settingsManager.Settings.PinHash))
-                     {
-                         authenticated = true;
-                         _mainViewModel.UnlockApp();
-                         // Ensure PIN is set in manager (for decryption if needed, though usually set on startup)
-                         _snippetManager.SetPin(pinChars.AsSpan());
-                     }
-                     else
-                     {
-                         MessageBox.Show("Invalid PIN.", "Security", MessageBoxButton.OK, MessageBoxImage.Warning);
-                     }
-                 }
-                 finally
-                 {
-                     if (pinChars != null) Array.Clear(pinChars, 0, pinChars.Length);
-                 }
-             }
+            if (pin != null) Array.Clear(pin);
+            if (_mainViewModel != null) _mainViewModel.IsDialogOpen = wasDialogOpen;
         }
+    }
 
-        private void MainViewModel_RequestInput(string message, string defaultVal, Action<string> callback)
+    private void ApplyLockState(bool locked)
+    {
+        if (locked)
         {
-             var inputWin = new Views.InputWindow(message, defaultVal);
-             if (inputWin.ShowDialog() == true)
-             {
-                 callback(inputWin.Result);
-             }
+            foreach (Window window in Windows.OfType<Window>().ToArray())
+                if (window is SnippetEditorWindow editor) editor.CloseForLock();
+                else if (window is SettingsWindow or HelpWindow) window.Close();
+            _hotkeyManager?.ClearRegistrations();
         }
-
-        private void MainViewModel_RequestShowHelp()
+        else
         {
-             var helpWin = new Views.HelpWindow();
-             helpWin.Show();
+            _mainWindow?.Show();
+            if (_mainWindow != null) { _mainWindow.WindowState = WindowState.Normal; WindowPlacement.EnsureVisible(_mainWindow); _mainWindow.Activate(); }
         }
+    }
 
-        private bool IsHashEqual(string? hash1, string? hash2)
+    private void RequestInput(string message, string defaultValue, Action<string> callback)
+    {
+        var window = new InputWindow(message, defaultValue, value => int.TryParse(value, out int minutes) && minutes >= 0 && minutes <= 1440 ? null : "Enter a whole number from 0 to 1440.") { Owner = DialogService.ActiveOwner };
+        if (window.ShowDialog() == true) callback(window.Result);
+    }
+
+    private void ShowSettings()
+    {
+        if (_settingsWindow == null)
         {
-            if (hash1 == null || hash2 == null) return false;
-
-            try
-            {
-                byte[] bytes1 = Convert.FromBase64String(hash1);
-                byte[] bytes2 = Convert.FromBase64String(hash2);
-                if (bytes1.Length != bytes2.Length) return false;
-                return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(bytes1, bytes2);
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
+            _settingsWindow = new SettingsWindow { Owner = _mainWindow, DataContext = _mainViewModel };
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show();
         }
+        else _settingsWindow.Activate();
+    }
 
-        protected override void OnExit(ExitEventArgs e)
+    private void ShowHelp()
+    {
+        if (_helpWindow == null)
         {
-            _hotkeyManager?.Dispose();
-            _focusTracker?.Dispose();
-            _autoLockService?.Dispose();
-            _snippetManager?.Dispose();
-            (_logger as IDisposable)?.Dispose();
-            base.OnExit(e);
+            _helpWindow = new HelpWindow { Owner = DialogService.ActiveOwner ?? _mainWindow };
+            _helpWindow.Closed += (_, _) => _helpWindow = null;
+            _helpWindow.Show();
         }
+        else _helpWindow.Activate();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        InputManager.Current.PreProcessInput -= TrackActivity;
+        _hotkeyManager?.Dispose(); _focusTracker?.Dispose(); _autoLockService?.Dispose(); _snippetManager?.Dispose();
+        (_themeService as IDisposable)?.Dispose(); (_logger as IDisposable)?.Dispose();
+        base.OnExit(e);
     }
 }

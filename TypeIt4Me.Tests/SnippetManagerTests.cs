@@ -406,7 +406,7 @@ namespace TypeIt4Me.Tests
         // ===================================================================
 
         [Fact]
-        public async Task AddSnippet_BackgroundSaveFails_LogsError()
+        public async Task AddSnippet_SaveFails_LogsAndPropagatesError()
         {
             // Arrange
             var logger = new MockLogger();
@@ -421,7 +421,8 @@ namespace TypeIt4Me.Tests
             using (var fs = new FileStream(_importFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
                 // Act
-                await snippetManager.AddSnippet(snippet);
+                var error = await Record.ExceptionAsync(() => snippetManager.AddSnippet(snippet));
+                Assert.True(error is IOException or UnauthorizedAccessException);
             }
 
             Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after AddSnippet");
@@ -429,7 +430,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async Task RemoveSnippet_BackgroundSaveFails_LogsError()
+        public async Task RemoveSnippet_SaveFails_LogsAndPropagatesError()
         {
             // Arrange
             var logger = new MockLogger();
@@ -445,7 +446,8 @@ namespace TypeIt4Me.Tests
             using (var fs = new FileStream(_importFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
                 // Act
-                await snippetManager.RemoveSnippet(snippet);
+                var error = await Record.ExceptionAsync(() => snippetManager.RemoveSnippet(snippet));
+                Assert.True(error is IOException or UnauthorizedAccessException);
             }
 
             Assert.Contains(logger.ErrorLogs, log => log.Message == "Background save failed after RemoveSnippet");
