@@ -16,6 +16,13 @@ namespace TypeIt4Me.Services
         /// </summary>
         private static string? _appDataFolder;
 
+        // Used only by the separate Windows review executable, before constructing
+        // any production services. Ordinary app startup always uses AppData.
+        internal static void SetDataDirectoryForTests(string directory)
+        {
+            _appDataFolder = Path.GetFullPath(directory);
+        }
+
         public static string GetAppDataPath(string fileName)
         {
             string folder = _appDataFolder ??= Path.Combine(
