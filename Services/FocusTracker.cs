@@ -10,12 +10,20 @@ namespace TypeIt4Me.Services
         private CancellationTokenSource? _cts;
         private IntPtr _myWindowHandle;
         private readonly Func<IntPtr> _getForegroundWindow;
-        
+        private readonly Func<IntPtr, bool> _isOwnWindow;
+
         public IntPtr LastExternalWindowHandle { get; private set; }
 
-        internal FocusTracker(Func<IntPtr>? getForegroundWindow = null)
+        internal FocusTracker(Func<IntPtr>? getForegroundWindow = null, Func<IntPtr, bool>? isOwnWindow = null)
         {
             _getForegroundWindow = getForegroundWindow ?? NativeMethods.GetForegroundWindow;
+            _isOwnWindow = isOwnWindow ?? (getForegroundWindow != null ? _ => false : IsOwnProcessWindow);
+        }
+
+        private static bool IsOwnProcessWindow(IntPtr window)
+        {
+            NativeMethods.GetWindowThreadProcessId(window, out uint processId);
+            return processId == Environment.ProcessId;
         }
 
         public void Start(IntPtr myWindowHandle)
@@ -29,10 +37,10 @@ namespace TypeIt4Me.Services
         {
             try
             {
-                while (!token.IsCancellationRequested)
+                while (true)
                 {
                     IntPtr foreground = _getForegroundWindow();
-                    if (foreground != IntPtr.Zero && foreground != _myWindowHandle)
+                    if (foreground != IntPtr.Zero && foreground != _myWindowHandle && !_isOwnWindow(foreground))
                     {
                         LastExternalWindowHandle = foreground;
                     }

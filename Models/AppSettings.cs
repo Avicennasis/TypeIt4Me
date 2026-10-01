@@ -4,6 +4,13 @@ namespace TypeIt4Me.Models
 {
     public class AppSettings : ObservableObject
     {
+        // Optional placement fields; older settings files keep the defaults.
+        public double? WindowLeft { get; set; }
+        public double? WindowTop { get; set; }
+        public double WindowWidth { get; set; } = 420;
+        public double WindowHeight { get; set; } = 620;
+        public double MiniWidth { get; set; } = 300;
+        public double MiniHeight { get; set; } = 300;
         private bool _alwaysOnTop = true;
         private string _pinHash = string.Empty;
         private string _pinSalt = string.Empty;

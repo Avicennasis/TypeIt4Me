@@ -7,6 +7,20 @@ namespace TypeIt4Me.Tests;
 public class BulkObservableCollectionTests
 {
     [Fact]
+    public void BulkChanges_NotifyCountAndIndexerBeforeReset()
+    {
+        var collection = new BulkObservableCollection<string> { "old" };
+        var notifications = new List<string>();
+        ((System.ComponentModel.INotifyPropertyChanged)collection).PropertyChanged += (_, e) => notifications.Add(e.PropertyName!);
+        collection.CollectionChanged += (_, _) => notifications.Add("Reset");
+        collection.ReplaceAll(Array.Empty<string>());
+        Assert.Equal(new[] { "Count", "Item[]", "Reset" }, notifications);
+        notifications.Clear();
+        collection.AddRange(new[] { "new" });
+        Assert.Equal(new[] { "Count", "Item[]", "Reset" }, notifications);
+    }
+
+    [Fact]
     public void ReplaceAll_ClearsAndAddsNewItems()
     {
         // Arrange

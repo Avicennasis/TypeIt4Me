@@ -1,0 +1,89 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="TypeIt4Me.Views.SettingsWindow" Title="Settings &#xB7; TypeIt4Me" Width="560" Height="740" MinWidth="460" MinHeight="480" Style="{StaticResource AppWindow}" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Margin="24,24,24,16">
+            <TextBlock Text="Settings" Style="{StaticResource TitleText}"/>
+            <TextBlock Text="Make TypeIt4Me feel at home." Style="{StaticResource HelperText}" Margin="0,6,0,0"/>
+        </StackPanel>
+        <ScrollViewer x:Name="SettingsContent" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,0,24,16">
+            <StackPanel>
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Appearance" Style="{StaticResource SectionText}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <RadioButton Content="_Light" IsChecked="{Binding IsLightMode, Mode=OneWay}" Command="{Binding SetLightThemeCommand}" GroupName="Theme"/>
+                            <RadioButton Content="_Dark" IsChecked="{Binding IsDarkMode, Mode=OneWay}" Command="{Binding SetDarkThemeCommand}" GroupName="Theme"/>
+                        </StackPanel>
+                        <TextBlock Text="Windows high-contrast colors take priority over this choice." Style="{StaticResource HelperText}" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Window &amp; tray" Style="{StaticResource SectionText}" Margin="0,0,0,8"/>
+                        <CheckBox Content="Keep above other windows" IsChecked="{Binding IsAlwaysOnTop}"/>
+                        <CheckBox Content="Use Mini Mode" IsChecked="{Binding IsMiniMode}"/>
+                        <CheckBox Content="Keep running in the system tray when closed" IsChecked="{Binding MinimizeToTray}"/>
+                        <TextBlock Text="Double-click the tray icon to restore. Choose Exit from its menu to quit. Your full and Mini Mode sizes are remembered separately." Style="{StaticResource HelperText}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Privacy &amp; locking" Style="{StaticResource SectionText}"/>
+                        <TextBlock Text="{Binding SecuritySummary}" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" Margin="0,10,0,6"/>
+                        <TextBlock Text="A PIN encrypts stored snippets on this device. Without one, snippets and exports are plain text. There is no PIN recovery." Style="{StaticResource HelperText}"/>
+                        <WrapPanel Margin="0,12,0,8">
+                            <Button Command="{Binding SetPinCommand}" Margin="0,0,8,8">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Content" Value="Set PIN&#x2026;"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasPin}" Value="True">
+                                                <Setter Property="Content" Value="Change PIN&#x2026;"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="Remove PIN&#x2026;" Command="{Binding RemovePinCommand}" Style="{StaticResource DangerButton}" Margin="0,0,8,8"/>
+                            <Button Content="Lock now" Command="{Binding LockCommand}" Margin="0,0,0,8"/>
+                        </WrapPanel>
+                        <CheckBox Content="Ask for PIN when restoring from the tray" IsChecked="{Binding LockOnRestore}" IsEnabled="{Binding HasPin}"/>
+                        <Label Content="_Auto-lock after (minutes)" Target="{Binding ElementName=AutoLockBox}" Style="{StaticResource FieldLabel}" Margin="0,12,0,0"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="AutoLockBox" Text="{Binding AutoLockDraft, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Auto-lock minutes"/>
+                            <Button Grid.Column="1" Content="_Apply" Command="{Binding ApplyAutoLockCommand}" Margin="8,0,0,0"/>
+                        </Grid>
+                        <TextBlock Text="{Binding AutoLockValidation}" Foreground="{DynamicResource DangerBrush}" FontSize="{StaticResource TypeCaption}" TextWrapping="Wrap" Margin="0,6,0,0" AutomationProperties.LiveSetting="Polite"/>
+                        <TextBlock Text="0 turns auto-lock off. Otherwise, 1&#x2013;1440 minutes of inactivity in TypeIt4Me locks the app when a PIN is set." Style="{StaticResource HelperText}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Your data" Style="{StaticResource SectionText}"/>
+                        <TextBlock Text="Import adds snippets to your collection. Export saves a backup with the same PIN protection as your current collection." Style="{StaticResource HelperText}" Margin="0,8,0,12"/>
+                        <WrapPanel>
+                            <Button Content="Import snippets&#x2026;" Command="{Binding ImportSnippetsCommand}" Margin="0,0,8,8"/>
+                            <Button Content="Export snippets&#x2026;" Command="{Binding ExportSnippetsCommand}" Margin="0,0,0,8"/>
+                        </WrapPanel>
+                        <TextBlock Text="Stored locally in %AppData%\TypeIt4Me. Text insertion uses SendInput; TypeIt4Me does not copy snippet content to the clipboard." Style="{StaticResource HelperText}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,16">
+            <DockPanel>
+                <Button Content="_Done" Click="Done_Click" IsCancel="True" DockPanel.Dock="Right" Style="{StaticResource AccentButton}"/>
+                <Button Content="Help &amp; about" Command="{Binding ShowHelpCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left"/>
+                <TextBlock Text="Changes apply immediately" FontSize="{StaticResource TypeCaption}" Foreground="{DynamicResource SecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

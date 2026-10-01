@@ -1,11 +1,23 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <SolidColorBrush x:Key="WindowBackground" Color="#2D2D30"/>
-    <SolidColorBrush x:Key="TextForeground" Color="#EAEAEA"/>
-    <SolidColorBrush x:Key="ListBackground" Color="#252526"/>
-    <SolidColorBrush x:Key="ListAltBackground" Color="#3E3E42"/>
-    <SolidColorBrush x:Key="ListBorder" Color="#3F3F46"/>
-    <SolidColorBrush x:Key="InputBackground" Color="#333337"/>
-    <SolidColorBrush x:Key="InputForeground" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="ControlHover" Color="#3E3E40"/>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="CanvasBrush" Color="#141B18"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#202A25"/>
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#27342D"/>
+    <SolidColorBrush x:Key="ForegroundBrush" Color="#EFF5F1"/>
+    <SolidColorBrush x:Key="SecondaryBrush" Color="#B4C5BB"/>
+    <SolidColorBrush x:Key="MutedBrush" Color="#9BADA1"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#43554A"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="#718F7C"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#304438"/>
+    <SolidColorBrush x:Key="PressedBrush" Color="#3C5747"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#82DEC4"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#9BE8D4"/>
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#65CEAE"/>
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#092C22"/>
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#253E32"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#FF9EAB"/>
+    <SolidColorBrush x:Key="DangerSoftBrush" Color="#452B33"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#F4D487"/>
+    <SolidColorBrush x:Key="WarningSoftBrush" Color="#403A29"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#95DEB2"/>
+    <SolidColorBrush x:Key="FocusBrush" Color="#A2EBD5"/>
 </ResourceDictionary>

@@ -3,137 +3,120 @@
 [![CI](https://github.com/Avicennasis/TypeIt4Me/actions/workflows/test.yml/badge.svg)](https://github.com/Avicennasis/TypeIt4Me/actions/workflows/test.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Avicennasis/TypeIt4Me/badge)](https://scorecard.dev/viewer/?uri=github.com/Avicennasis/TypeIt4Me)
 [![Release](https://img.shields.io/github/v/release/Avicennasis/TypeIt4Me?display_name=tag)](https://github.com/Avicennasis/TypeIt4Me/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A lightweight, secure text expansion tool for Windows built with .NET 8 and WPF.
+Instant access to the text you use every day. TypeIt4Me is a lightweight Windows utility with a floating snippet library, global hotkeys, and local storage, built with .NET 8 WPF.
 
-## Features
+Click a snippet to type it into the last application you used, or assign it a global key combination. Text insertion uses Windows `SendInput` without copying snippet content to the clipboard. Typing an abbreviation does **not** automatically expand it.
 
-*   **Text Expansion**: Create shortcuts (e.g., `eml`) that expand into full text (e.g., `my.email@example.com`).
-*   **Global Hotkeys**: Trigger snippets anywhere using global hotkeys.
-*   **Search**: Built-in search bar with debouncing for fast, responsive filtering.
-*   **Themes**: Switch between Dark and Light modes to suit your preference.
-*   **Mini Mode**: Collapse the window to a compact view for screen efficiency.
+## A compact home for useful words
 
-## Security Architecture
-TypeIt4Me prioritizes the security of your snippets with enterprise-grade cryptography.
+<img src="docs/screenshots/light-main.png" alt="TypeIt4Me's light theme with searchable snippet cards" width="300"> <img src="docs/screenshots/dark-main.png" alt="The same library in the dark theme" width="300">
 
-*   **Encryption**: Snippets are encrypted using **AES-256-CBC** with **HMAC-SHA256 authentication** (Authenticated Encryption).
-    *   **Version 3 (Current)**:
-        - Uses **AES-256** encryption with randomly generated 32-byte salt and 16-byte IV per save
-        - **HMAC-SHA256** authentication prevents tampering and detects corrupted data
-        - Separate derived keys for encryption and authentication (defense-in-depth)
-        - Each save generates unique encrypted output, preventing pattern analysis attacks
-    *   **Key Derivation**: Your PIN is strengthened using **PBKDF2-SHA256** with **600,000 iterations** (OWASP 2024 recommendation) to derive encryption and authentication keys
-*   **PIN Storage**:
-    *   Your PIN is **never** stored in plain text
-    *   Hashed using PBKDF2-SHA256 with a unique, randomly generated 32-byte salt
-    *   Minimum 4-character PIN enforced, 6+ characters recommended
-    *   Stored securely in `settings.json` alongside its unique salt
-*   **Memory Safety**:
-    *   Cryptographic keys and sensitive buffers are explicitly zeroed from memory immediately after use
-    *   Helps mitigate RAM scraping and memory dump attacks
-    *   **Note**: PIN remains in memory as a .NET string during session (immutable string limitation)
-*   **Input Validation**:
-    *   Maximum snippet size enforced (100 KB) to prevent denial-of-service attacks
-    *   Auto-lock timeout validated (0-1440 minutes)
-    *   Cryptographic buffer length validation prevents buffer overflow attacks
-*   **Auto-Lock**: Configure an idle timer (1-1440 minutes) to automatically lock the application when you step away
-*   **Input Injection**: Uses Windows `SendInput` API for text expansion, completely avoiding the system clipboard. This prevents snippets from appearing in clipboard history managers or being logged by clipboard monitoring tools.
+- Search names, categories, content, and hotkeys. Insert the selected result with Enter.
+- Keep the floating window above other apps with the pin button.
+- Switch to Mini Mode for just search and quick insertion; full and Mini Mode sizes are remembered separately.
+- Edit names, categories, global hotkeys, and multiline content in a dedicated editor with validation and a command reference.
+- Choose light or dark colors in Settings. Windows high-contrast colors take priority.
+- Keep running in the system tray, configure auto-lock, and manage PIN protection and backups in Settings.
 
-## File Locations
-*   **Snippets**: `%AppData%\TypeIt4Me\snippets.json` (Encrypted if PIN is set)
-*   **Settings**: `%AppData%\TypeIt4Me\settings.json`
-*   **Portable**: Can be run as a standalone executable.
+<img src="docs/screenshots/light-mini.png" alt="Mini Mode with search and compact insertion rows" width="300"> <img src="docs/screenshots/dark-mini.png" alt="Mini Mode in the dark theme" width="300">
 
-## Installation
+The screenshots show the current source on Windows 11 with synthetic snippets. See the [complete screenshot gallery](docs/screenshots/README.md), [design system](docs/UI-DESIGN.md), and [verification record](docs/VALIDATION.md). Older release downloads may have the previous interface.
 
-1.  Download the latest release.
-2.  Extract the `Dist` folder.
-3.  Run `TypeIt4Me.exe`.
+## Install and use
 
-## Usage
+Download `TypeIt4Me.exe` from [Releases](https://github.com/Avicennasis/TypeIt4Me/releases). The self-contained Windows x64 build can run without installing the .NET SDK. Build from source for the current development version.
 
-1.  **Add**: Click `+ New Snippet`, enter content, save.
-2.  **Use**: Type your hotkey or use the Play (▶) button.
-3.  **Config**: Click the Menu (☰) for Settings (Themes, Auto-Lock), PIN management, and Import/Export.
-4.  **Tray**: The app minimizes to the system tray. Double-click the tray icon or use the hotkey to restore.
+1. Choose **New** and enter a name and the text you want to reuse. Category and global hotkey are optional.
+2. Select a text field in another application, return to TypeIt4Me, and click the snippet. Its arrow indicates insertion; edit and more actions sit beside it.
+3. Alternatively, press the snippet's global hotkey, such as **Ctrl + Alt + E**. Reserved or conflicting combinations are reported after registration.
+4. Open **Settings** with the footer button or **Ctrl + ,** for appearance, tray behavior, locking, import, and export.
+5. With tray mode enabled, closing or minimizing hides the window. Double-click its tray icon to restore; choose **Exit** from the tray menu to quit.
 
-## Special Keys & Commands
+Input must target a normal application that accepts keyboard input. Elevated applications, reserved shortcuts, and applications that reject injected input may not work. TypeIt4Me reports when it cannot return focus to the target.
 
-TypeIt4Me supports special key presses and commands using curly bracket syntax. These can be combined with regular text in your snippets.
+## Keyboard access
 
-### Navigation Keys
-| Command | Key | Aliases |
-|---------|-----|---------|
-| `{TAB}` | Tab | |
-| `{ENTER}` | Enter | `{RETURN}` |
-| `{ESC}` | Escape | `{ESCAPE}` |
-| `{BACKSPACE}` | Backspace | |
-| `{DELETE}` | Delete | `{DEL}` |
-| `{INSERT}` | Insert | `{INS}` |
-| `{HOME}` | Home | |
-| `{END}` | End | |
-| `{PAGEUP}` | Page Up | `{PGUP}` |
-| `{PAGEDOWN}` | Page Down | `{PGDN}` |
-| `{SPACE}` | Space | |
+| Action | Shortcut |
+| --- | --- |
+| Search / clear search | Ctrl + F / Escape |
+| Move from search to results | Down |
+| Insert selected snippet | Enter |
+| Edit selected snippet | F2 |
+| Confirm deletion | Delete |
+| Open snippet actions | Shift + F10 |
+| New snippet | Ctrl + N |
+| Enter / leave Mini Mode | Ctrl + M |
+| Settings / Help | Ctrl + , / F1 |
+| Lock, when a PIN is set | Ctrl + L |
+| Save in the editor | Ctrl + S |
+| Cancel a dialog | Escape |
+| Move between controls | Tab / Shift + Tab |
+| Windows system menu | Alt + Space |
 
-### Arrow Keys
-| Command | Key | Aliases |
-|---------|-----|---------|
-| `{UP}` | Arrow Up | `{ARROWUP}` |
-| `{DOWN}` | Arrow Down | `{ARROWDOWN}` |
-| `{LEFT}` | Arrow Left | `{ARROWLEFT}` |
-| `{RIGHT}` | Arrow Right | `{ARROWRIGHT}` |
+In the content editor, Enter inserts a newline and Tab leaves the field. Closing an editor with changes shows an inline discard confirmation. Search Enter waits for the current search to finish.
 
-### Modifier Keys
-| Command | Key | Aliases |
-|---------|-----|---------|
-| `{SHIFT}` | Shift | |
-| `{CTRL}` | Control | `{CONTROL}` |
-| `{ALT}` | Alt | |
-| `{WINKEY}` | Windows Key | `{WIN}`, `{LWIN}`, `{RWIN}` |
+## PIN protection and local data
 
-### Toggle & Special Keys
-| Command | Key | Aliases |
-|---------|-----|---------|
-| `{CAPSLOCK}` | Caps Lock | `{CAPS}` |
-| `{NUMLOCK}` | Num Lock | |
-| `{SCROLLLOCK}` | Scroll Lock | |
-| `{PRINTSCREEN}` | Print Screen | `{PRTSC}` |
+Without a PIN, snippets and exports are plain JSON. Setting a PIN encrypts the saved collection and exports. Changing or removing a PIN requires the current PIN; removal explicitly saves snippets as plain text. There is no PIN recovery: keep your PIN and backups safe.
 
-### Function Keys
-`{F1}` through `{F12}` - All function keys are supported.
+- **Format:** existing V3 AES-256-CBC with HMAC-SHA256 authentication. Each save uses a fresh random 32-byte salt; encryption key, IV, and authentication key are derived from the PIN and salt using PBKDF2-SHA256 with 600,000 iterations.
+- **PIN verifier:** `settings.json` stores a salted PBKDF2-SHA256 hash, not the plaintext PIN. PIN creation requires at least four characters; six or more is recommended.
+- **Locking:** hides the collection, disables snippet actions, and unregisters snippet hotkeys. Auto-lock measures inactivity in TypeIt4Me, with 0 disabling it and 1–1440 minutes supported. Settings can require unlocking when restoring from the tray.
+- **Memory limits:** the active PIN is held in a mutable character buffer and cleared when locking or disposing. Cryptographic buffers are cleared after use. Snippet strings remain in process memory; locking does not guarantee that all text is erased from RAM. An active data operation finishes before its PIN buffer is cleared.
+- **Insertion:** uses `SendInput`. TypeIt4Me does not write snippet content to clipboard history. Commands that press keys can still cause the target application to perform its own actions.
+- **Content limit:** 102,400 characters per snippet, matching the input-injection limit.
 
-### Sleep Command
-Use `{SLEEP <milliseconds>}` to pause between actions (1ms to 60,000ms):
-- `{SLEEP 500}` - Pause for half a second
-- `{SLEEP 2000}` - Pause for 2 seconds
+| File | Location |
+| --- | --- |
+| Snippets | `%AppData%\TypeIt4Me\snippets.json` |
+| Settings and PIN verifier | `%AppData%\TypeIt4Me\settings.json` |
+| Error log | `%AppData%\TypeIt4Me\error.log` |
 
-### Example Snippets
-```
+Import **adds** snippets to the collection; it does not replace it. Export uses the current collection's PIN protection. Existing settings and snippet files do not need migration for this UI update. Back up both data files before changing PIN protection.
+
+## Special keys and commands
+
+Combine ordinary text with case-insensitive commands in braces. Unknown commands are typed literally. The editor's **Special commands & examples** section and Help contain an in-app reference.
+
+| Commands | Meaning |
+| --- | --- |
+| `{TAB}`, `{ENTER}` / `{RETURN}`, `{ESC}` / `{ESCAPE}` | Tab, Enter, Escape |
+| `{BACKSPACE}`, `{DELETE}` / `{DEL}`, `{INSERT}` / `{INS}` | Editing keys |
+| `{HOME}`, `{END}`, `{PAGEUP}` / `{PGUP}`, `{PAGEDOWN}` / `{PGDN}` | Navigation |
+| `{UP}`, `{DOWN}`, `{LEFT}`, `{RIGHT}` | Arrow keys; `ARROWUP`, `ARROWDOWN`, `ARROWLEFT`, `ARROWRIGHT` also work |
+| `{SPACE}`, `{F1}` through `{F12}` | Space and function keys |
+| `{CAPSLOCK}` / `{CAPS}`, `{NUMLOCK}`, `{SCROLLLOCK}`, `{PRINTSCREEN}` / `{PRTSC}` | Toggle and special keys |
+| `{SHIFT}`, `{CTRL}` / `{CONTROL}`, `{ALT}`, `{WINKEY}` / `{WIN}` / `{LWIN}` / `{RWIN}` | A modifier press and release |
+| `{SLEEP 500}` | Pause for 500 milliseconds; valid range is 1–60,000 |
+
+**Modifier commands do not hold a modifier for the next character.** For example, `{CTRL}a` presses and releases Ctrl, then types `a`; it does not select all.
+
+```text
 Hello{TAB}World{ENTER}
-```
-Types "Hello", presses Tab, types "World", then presses Enter.
-
-```
-{CTRL}a{CTRL}c{TAB}{CTRL}v
-```
-Select all, copy, tab to next field, paste.
-
-```
 Starting...{SLEEP 1000}Done!
 ```
-Types "Starting...", waits 1 second, then types "Done!".
 
-## License
-This project is licensed under the MIT License.
+The first example types Hello, presses Tab, types World, and presses Enter. The second pauses for one second between the two phrases.
 
-The Application Icon is from [Material Symbols](https://fonts.google.com/icons) by Google, licensed under the **Apache License Version 2.0**.
+## Build and verify
 
-See [LICENSE](LICENSE) for details.
+Use Windows with the .NET 8 SDK and Windows Desktop support:
 
-## Credits
-**Author:** Léon "Avic" Simmons ([@Avicennasis](https://github.com/Avicennasis))
+```powershell
+dotnet restore TypeIt4Me.sln
+dotnet build TypeIt4Me.sln -c Release --no-restore
+dotnet test TypeIt4Me.sln -c Release --no-build --logger "trx;LogFileName=results.trx" --logger "console;verbosity=normal"
+dotnet run --project tools/UiReview/UiReview.csproj -c Release -- ui-review
+```
 
+The xUnit suite covers services and view models. The separate UI review executable loads the real WPF resources with deterministic fake services, checks bindings and layout behavior, and captures 67 client-area images, including light/dark, minimum sizes, validation, and 100%, 125%, and 150% render scales. It does not touch the normal AppData profile. CI runs on GitHub-hosted `windows-latest` and uploads test results, UI captures, and the published executable.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidance and [docs/VALIDATION.md](docs/VALIDATION.md) for the isolated production smoke test and remaining validation limits.
+
+## License and credits
+
+TypeIt4Me and its original interface stroke icons are [MIT licensed](LICENSE). The existing application icon comes from [Google Material Symbols](https://fonts.google.com/icons), under Apache 2.0. Fonts come from Windows and are not redistributed. No new runtime dependency or external artwork was added for the redesign.
+
+Created by Léon "Avic" Simmons ([@Avicennasis](https://github.com/Avicennasis)) and contributors.

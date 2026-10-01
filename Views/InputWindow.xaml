@@ -1,28 +1,15 @@
-<Window x:Class="TypeIt4Me.Views.InputWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="TypeIt4Me" Height="140" Width="300"
-        WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize"
-        ShowInTaskbar="False"
-        Background="{DynamicResource WindowBackground}">
-    <Window.Resources>
-    </Window.Resources>
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        
-        <TextBlock x:Name="MessageText" Text="Enter Value:" Foreground="{DynamicResource TextForeground}" Margin="0,0,0,10"/>
-        
-        <TextBox x:Name="InputBox" Grid.Row="1" Margin="0,0,0,10" Padding="5" 
-                 Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputForeground}"/>
-        
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="OK" IsDefault="True" Click="OK_Click" Width="60" Margin="0,0,10,0" Padding="5"/>
-            <Button Content="Cancel" IsCancel="True" Click="Cancel_Click" Width="60" Padding="5"/>
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="TypeIt4Me.Views.InputWindow" Title="Auto-lock &#xB7; TypeIt4Me" Width="400" SizeToContent="Height" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False" Style="{StaticResource AppWindow}">
+    <ScrollViewer x:Name="DialogContent" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="{StaticResource SpaceLarge}">
+            <TextBlock Text="Auto-lock" Style="{StaticResource TitleText}" Margin="0,0,0,12"/>
+            <Label x:Name="MessageText" Content="Timeout in minutes" Target="{Binding ElementName=InputBox}" Style="{StaticResource FieldLabel}"/>
+            <TextBox x:Name="InputBox" AutomationProperties.Name="Auto-lock minutes"/>
+            <TextBlock Text="Use 0 to turn auto-lock off, or 1&#x2013;1440 minutes. A PIN must be set for auto-lock to take effect." Style="{StaticResource HelperText}" Margin="0,10,0,0"/>
+            <TextBlock x:Name="ValidationText" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                <Button Content="_Cancel" IsCancel="True" Click="Cancel_Click" Margin="0,0,8,0"/>
+                <Button Content="_Apply" IsDefault="True" Click="OK_Click" Style="{StaticResource AccentButton}"/>
+            </StackPanel>
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </Window>

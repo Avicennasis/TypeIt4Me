@@ -143,7 +143,7 @@ namespace TypeIt4Me.Services
                 }
 
                 // Atomic move operation
-                File.Move(tempPath, path, overwrite: true);
+                await Task.Run(() => File.Move(tempPath, path, overwrite: true));
                 tempPath = null; // Successfully moved, don't delete
             }
             catch (Exception ex)
@@ -154,16 +154,23 @@ namespace TypeIt4Me.Services
             finally
             {
                 // Clean up temp file if it still exists (operation failed)
-                if (tempPath != null && File.Exists(tempPath))
+                if (tempPath != null)
                 {
-                    try
+                    string fileToDelete = tempPath;
+                    await Task.Run(() =>
                     {
-                        File.Delete(tempPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Failed to delete temporary file {tempPath}: {ex.GetType().FullName}");
-                    }
+                        try
+                        {
+                            if (File.Exists(fileToDelete))
+                            {
+                                File.Delete(fileToDelete);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to delete temporary file {fileToDelete}: {ex.GetType().FullName}");
+                        }
+                    });
                 }
 
                 _fileLock.Release();
@@ -252,6 +259,7 @@ namespace TypeIt4Me.Services
             catch (Exception ex)
             {
                 _logger.LogError("Background save failed after AddSnippet", ex);
+                throw; // The editor must be able to report that persistence failed.
             }
         }
 
@@ -265,6 +273,7 @@ namespace TypeIt4Me.Services
             catch (Exception ex)
             {
                 _logger.LogError("Background save failed after RemoveSnippet", ex);
+                throw; // Let the UI restore the row and offer a retry.
             }
         }
 

@@ -38,6 +38,7 @@ namespace TypeIt4Me.Services
         private const int SaltSize = 32;           // 32 bytes = 256 bits for salt
         private const int IVSize = 16;             // 16 bytes = 128 bits for AES IV
         private const int HMACSize = 32;           // 32 bytes = 256 bits for HMAC-SHA256
+        private const int MinAesBlockSize = 16;    // 16 bytes = minimum AES block size
         private const int Iterations = 600000;     // OWASP recommended iterations for PBKDF2-SHA256
         private const int MaxPlainTextSize = 10 * 1024 * 1024; // 10 MB limit to prevent DoS
         
@@ -182,7 +183,7 @@ namespace TypeIt4Me.Services
                 byte[] fullBytes = Convert.FromBase64String(base64Payload);
 
                 // Minimum size validation: Salt + IV + (at least 1 block of ciphertext) + HMAC
-                int minimumSize = SaltSize + IVSize + 16 + HMACSize; // 16 = minimum AES block size
+                int minimumSize = SaltSize + IVSize + MinAesBlockSize + HMACSize;
                 if (fullBytes.Length < minimumSize)
                 {
                     throw new CryptographicException("Encrypted data is too short to be valid.");

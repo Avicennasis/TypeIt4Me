@@ -73,7 +73,7 @@ namespace TypeIt4Me.Services
                  await _semaphore.WaitAsync().ConfigureAwait(false);
                  try
                  {
-                     RotateIfOversized();
+                     await RotateIfOversizedAsync().ConfigureAwait(false);
                      await File.AppendAllTextAsync(_logPath, logEntry).ConfigureAwait(false);
                  }
                  finally
@@ -96,7 +96,7 @@ namespace TypeIt4Me.Services
         /// anything that escapes, so letting an IO error propagate from here would cost us the log
         /// line we were about to write. Failing to rotate is far cheaper than failing to log.
         /// </remarks>
-        private void RotateIfOversized()
+        private async Task RotateIfOversizedAsync()
         {
             try
             {
@@ -106,7 +106,7 @@ namespace TypeIt4Me.Services
                 FileInfo info = new FileInfo(_logPath);
                 if (info.Exists && info.Length > MaxLogSizeBytes)
                 {
-                    File.Move(_logPath, _logPath + ".1", overwrite: true);
+                    await Task.Run(() => File.Move(_logPath, _logPath + ".1", overwrite: true)).ConfigureAwait(false);
                 }
             }
             catch (IOException)

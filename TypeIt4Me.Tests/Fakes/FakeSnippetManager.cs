@@ -28,12 +28,31 @@ namespace TypeIt4Me.Tests.Fakes
         public Task RemoveSnippet(Snippet snippet)
         {
             Snippets.Remove(snippet);
+            if (RemoveException != null) return Task.FromException(RemoveException);
             return Task.CompletedTask;
         }
 
+        public Exception? RemoveException { get; set; }
+
         public Task ExportSnippetsAsync(string filePath) => Task.CompletedTask;
 
-        public Task<bool> ImportSnippetsAsync(string filePath, char[]? pin = null) => Task.FromResult(true);
+        public bool ImportResult { get; set; } = true;
+        public Func<string, char[]?, bool>? ImportHandler { get; set; }
+        public Func<string, char[]?, Task<bool>>? AsyncImportHandler { get; set; }
+        public string? LastImportFilePath { get; private set; }
+        public string? LastImportPin { get; private set; }
+
+        public Task<bool> ImportSnippetsAsync(string filePath, char[]? pin = null)
+        {
+            LastImportFilePath = filePath;
+            LastImportPin = pin != null ? new string(pin) : null;
+            if (AsyncImportHandler != null) return AsyncImportHandler(filePath, pin);
+            if (ImportHandler != null)
+            {
+                return Task.FromResult(ImportHandler(filePath, pin));
+            }
+            return Task.FromResult(ImportResult);
+        }
 
         public void Dispose()
         {
