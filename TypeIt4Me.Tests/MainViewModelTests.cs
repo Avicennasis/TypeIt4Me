@@ -493,5 +493,44 @@ namespace TypeIt4Me.Tests
             Assert.Single(viewModel.FilteredSnippets);
             Assert.Equal("Gamma", viewModel.FilteredSnippets[0].Name);
         }
+        [Fact]
+        public void IsMiniMode_WhenChanged_FiresRequestWindowResizeEvent()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var fakeHotkeyManager = new FakeHotkeyManager();
+            var fakeInputInjector = new FakeInputInjector();
+            var fakeFocusTracker = new FakeFocusTracker();
+            var fakeSettingsManager = new FakeSettingsManager();
+            var fakeAutoLockService = new FakeAutoLockService();
+            var fakeThemeService = new FakeThemeService();
+            var fakeLogger = new FakeLogger();
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                fakeHotkeyManager,
+                fakeInputInjector,
+                fakeFocusTracker,
+                fakeSettingsManager,
+                fakeAutoLockService,
+                fakeThemeService,
+                fakeLogger
+            );
+
+            bool? resizedValue = null;
+            viewModel.RequestWindowResize += (mini) => resizedValue = mini;
+
+            // Act
+            viewModel.IsMiniMode = true;
+
+            // Assert
+            Assert.True(resizedValue);
+
+            // Act
+            viewModel.IsMiniMode = false;
+
+            // Assert
+            Assert.False(resizedValue);
+        }
     }
 }
