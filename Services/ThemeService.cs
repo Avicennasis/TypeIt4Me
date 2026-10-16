@@ -22,10 +22,26 @@ namespace TypeIt4Me.Services
                 var dict = new ResourceDictionary { Source = new Uri(uriPath) };
                 var dictionaries = Application.Current.Resources.MergedDictionaries;
                 // Keep component styles and icon resources alive when changing colors.
+                bool replaced = false;
                 for (int i = dictionaries.Count - 1; i >= 0; i--)
+                {
                     if (dictionaries[i].Source?.OriginalString.Contains("Theme.xaml", StringComparison.Ordinal) == true)
-                        dictionaries.RemoveAt(i);
-                dictionaries.Insert(0, dict);
+                    {
+                        if (!replaced)
+                        {
+                            dictionaries[i] = dict;
+                            replaced = true;
+                        }
+                        else
+                        {
+                            dictionaries.RemoveAt(i);
+                        }
+                    }
+                }
+                if (!replaced)
+                {
+                    dictionaries.Insert(0, dict);
+                }
                 // Shared mutable brushes also update hidden/tray windows immediately.
                 // A deferred template can retain a brush from an earlier palette;
                 // replacing only its dictionary leaves that existing visual stale.
