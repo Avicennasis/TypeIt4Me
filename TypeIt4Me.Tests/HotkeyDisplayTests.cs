@@ -15,7 +15,7 @@ public class HotkeyDisplayTests
 
     [Theory]
     [InlineData(Key.A, ModifierKeys.None, "A")]
-    [InlineData(Key.Enter, ModifierKeys.None, "Enter")]
+    [InlineData(Key.Enter, ModifierKeys.None, "Return")]
     [InlineData(Key.Space, ModifierKeys.None, "Space")]
     public void Format_NoModifiers_ReturnsKeyName(Key key, ModifierKeys modifiers, string expected)
     {
