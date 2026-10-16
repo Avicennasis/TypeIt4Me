@@ -310,7 +310,7 @@ namespace TypeIt4Me.ViewModels
             var cts = Interlocked.Exchange(ref _searchCts, null);
             if (cts != null)
             {
-                try { cts.Cancel(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error cancelling search: {ex.GetType().FullName}"); }
+                try { cts.Cancel(); } catch (Exception ex) { _logger.LogError("Error cancelling search", ex); }
                 cts.Dispose();
             }
         }
@@ -322,7 +322,7 @@ namespace TypeIt4Me.ViewModels
             var oldCts = Interlocked.Exchange(ref _searchCts, newCts);
             if (oldCts != null)
             {
-                try { oldCts.Cancel(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error cancelling search: {ex.GetType().FullName}"); }
+                try { oldCts.Cancel(); } catch (Exception ex) { _logger.LogError("Error cancelling search", ex); }
                 oldCts.Dispose();
             }
 
