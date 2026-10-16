@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using TypeIt4Me.ViewModels;
 using TypeIt4Me.Tests.Fakes;
 using Xunit;
@@ -43,7 +44,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task SearchText_FiltersSnippetsByNameAndCategory()
+        public async Task SearchText_FiltersSnippetsByNameAndCategory()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager();
@@ -95,10 +96,10 @@ namespace TypeIt4Me.Tests
             Assert.Empty(viewModel.FilteredSnippets);
         }
 
-        private static async System.Threading.Tasks.Task WaitForSearch(MainViewModel viewModel)
+        private static async Task WaitForSearch(MainViewModel viewModel)
         {
             using var timeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
-            while (viewModel.IsSearching) await System.Threading.Tasks.Task.Delay(20, timeout.Token);
+            while (viewModel.IsSearching) await Task.Delay(20, timeout.Token);
         }
 
         [Fact]
@@ -138,7 +139,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task ImportSnippets_WhenDialogCancelled_DoesNotImport()
+        public async Task ImportSnippets_WhenDialogCancelled_DoesNotImport()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager();
@@ -168,7 +169,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task ImportSnippets_WhenUnencryptedImportSucceeds_ShowsSuccessMessage()
+        public async Task ImportSnippets_WhenUnencryptedImportSucceeds_ShowsSuccessMessage()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager
@@ -202,7 +203,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task ImportSnippets_WhenImportFailsAndUserDeclinesPinPrompt_DoesNotPromptPin()
+        public async Task ImportSnippets_WhenImportFailsAndUserDeclinesPinPrompt_DoesNotPromptPin()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager
@@ -242,7 +243,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task ImportSnippets_WhenImportFailsAndUserEntersValidPin_SuccessfullyImportsWithPin()
+        public async Task ImportSnippets_WhenImportFailsAndUserEntersValidPin_SuccessfullyImportsWithPin()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager
@@ -279,7 +280,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task ImportSnippets_WhenImportFailsAndUserEntersInvalidPinThenCancels_AttemptsImportWithPin()
+        public async Task ImportSnippets_WhenImportFailsAndUserEntersInvalidPinThenCancels_AttemptsImportWithPin()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager
@@ -327,7 +328,7 @@ namespace TypeIt4Me.Tests
             Assert.Empty(fakeDialogService.InformationMessages);
         }
         [Fact]
-        public async System.Threading.Tasks.Task SearchText_NullOrWhiteSpace_ReturnsAllSnippets()
+        public async Task SearchText_NullOrWhiteSpace_ReturnsAllSnippets()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager();
@@ -347,29 +348,29 @@ namespace TypeIt4Me.Tests
 
             // Filter first to narrow list
             viewModel.SearchText = "Alpha";
-            await System.Threading.Tasks.Task.Delay(1000);
+            await Task.Delay(1000);
             Assert.Single(viewModel.FilteredSnippets);
 
             // Act - Set to empty string
             viewModel.SearchText = "";
-            await System.Threading.Tasks.Task.Delay(1000);
+            await Task.Delay(1000);
             Assert.Equal(2, viewModel.FilteredSnippets.Count);
 
             // Act - Set to whitespace
             viewModel.SearchText = "   ";
-            await System.Threading.Tasks.Task.Delay(1000);
+            await Task.Delay(1000);
             Assert.Equal(2, viewModel.FilteredSnippets.Count);
 
             // Act - Set to null
 #pragma warning disable CS8625
             viewModel.SearchText = null;
 #pragma warning restore CS8625
-            await System.Threading.Tasks.Task.Delay(1000);
+            await Task.Delay(1000);
             Assert.Equal(2, viewModel.FilteredSnippets.Count);
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task PerformFiltering_HandlesNullSnippetsInCollection()
+        public async Task PerformFiltering_HandlesNullSnippetsInCollection()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager();
@@ -392,7 +393,7 @@ namespace TypeIt4Me.Tests
 
             // Act
             viewModel.SearchText = "Alpha";
-            await System.Threading.Tasks.Task.Delay(1000);
+            await Task.Delay(1000);
 
             // Assert
             Assert.Single(viewModel.FilteredSnippets);
@@ -400,7 +401,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task PerformFiltering_HandlesNullOrEmptyNameAndCategory()
+        public async Task PerformFiltering_HandlesNullOrEmptyNameAndCategory()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager();
@@ -423,7 +424,7 @@ namespace TypeIt4Me.Tests
 
             // Act - Search matching Category of item with null Name
             viewModel.SearchText = "CatA";
-            await System.Threading.Tasks.Task.Delay(1000);
+            await Task.Delay(1000);
 
             // Assert
             Assert.Single(viewModel.FilteredSnippets);
@@ -431,7 +432,7 @@ namespace TypeIt4Me.Tests
 
             // Act - Search matching Name of item with null Category
             viewModel.SearchText = "Beta";
-            await System.Threading.Tasks.Task.Delay(1000);
+            await Task.Delay(1000);
 
             // Assert
             Assert.Single(viewModel.FilteredSnippets);
@@ -439,7 +440,7 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
-        public async System.Threading.Tasks.Task SearchText_DebounceCancellation_OnlyAppliesLatestFilter()
+        public async Task SearchText_DebounceCancellation_OnlyAppliesLatestFilter()
         {
             // Arrange
             var fakeSnippetManager = new FakeSnippetManager();
@@ -459,9 +460,9 @@ namespace TypeIt4Me.Tests
 
             // Act - Trigger rapid updates within debounce window (300ms)
             viewModel.SearchText = "Alpha";
-            await System.Threading.Tasks.Task.Delay(100); // Less than debounce duration
+            await Task.Delay(100); // Less than debounce duration
             viewModel.SearchText = "Beta";
-            await System.Threading.Tasks.Task.Delay(1000); // Allow second search to finish
+            await Task.Delay(1000); // Allow second search to finish
 
             // Assert
             Assert.Single(viewModel.FilteredSnippets);
