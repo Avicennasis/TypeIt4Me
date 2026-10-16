@@ -347,24 +347,24 @@ namespace TypeIt4Me.Tests
 
             // Filter first to narrow list
             viewModel.SearchText = "Alpha";
-            await System.Threading.Tasks.Task.Delay(500);
+            await System.Threading.Tasks.Task.Delay(1000);
             Assert.Single(viewModel.FilteredSnippets);
 
             // Act - Set to empty string
             viewModel.SearchText = "";
-            await System.Threading.Tasks.Task.Delay(500);
+            await System.Threading.Tasks.Task.Delay(1000);
             Assert.Equal(2, viewModel.FilteredSnippets.Count);
 
             // Act - Set to whitespace
             viewModel.SearchText = "   ";
-            await System.Threading.Tasks.Task.Delay(500);
+            await System.Threading.Tasks.Task.Delay(1000);
             Assert.Equal(2, viewModel.FilteredSnippets.Count);
 
             // Act - Set to null
 #pragma warning disable CS8625
             viewModel.SearchText = null;
 #pragma warning restore CS8625
-            await System.Threading.Tasks.Task.Delay(500);
+            await System.Threading.Tasks.Task.Delay(1000);
             Assert.Equal(2, viewModel.FilteredSnippets.Count);
         }
 
@@ -392,7 +392,7 @@ namespace TypeIt4Me.Tests
 
             // Act
             viewModel.SearchText = "Alpha";
-            await System.Threading.Tasks.Task.Delay(500);
+            await System.Threading.Tasks.Task.Delay(1000);
 
             // Assert
             Assert.Single(viewModel.FilteredSnippets);
@@ -423,7 +423,7 @@ namespace TypeIt4Me.Tests
 
             // Act - Search matching Category of item with null Name
             viewModel.SearchText = "CatA";
-            await System.Threading.Tasks.Task.Delay(500);
+            await System.Threading.Tasks.Task.Delay(1000);
 
             // Assert
             Assert.Single(viewModel.FilteredSnippets);
@@ -431,7 +431,7 @@ namespace TypeIt4Me.Tests
 
             // Act - Search matching Name of item with null Category
             viewModel.SearchText = "Beta";
-            await System.Threading.Tasks.Task.Delay(500);
+            await System.Threading.Tasks.Task.Delay(1000);
 
             // Assert
             Assert.Single(viewModel.FilteredSnippets);
@@ -461,7 +461,7 @@ namespace TypeIt4Me.Tests
             viewModel.SearchText = "Alpha";
             await System.Threading.Tasks.Task.Delay(100); // Less than debounce duration
             viewModel.SearchText = "Beta";
-            await System.Threading.Tasks.Task.Delay(500); // Allow second search to finish
+            await System.Threading.Tasks.Task.Delay(1000); // Allow second search to finish
 
             // Assert
             Assert.Single(viewModel.FilteredSnippets);
