@@ -49,7 +49,7 @@ namespace TypeIt4Me.Services
         /// deserialization exception. Returns null when the content cannot be read with the
         /// supplied <paramref name="pin"/>. Pure and side-effect-free for testability.
         /// </summary>
-        public static List<Snippet>? TryDeserializeSnippets(string content, ReadOnlySpan<char> pin)
+        public static List<Snippet>? TryDeserializeSnippets(string content, ReadOnlySpan<char> pin, ILogger? logger = null)
         {
             if (string.IsNullOrEmpty(content)) return null;
 
@@ -66,7 +66,7 @@ namespace TypeIt4Me.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Decrypt/deserialize of encrypted snippets failed: {ex.GetType().FullName}");
+                    logger?.LogError($"Decrypt/deserialize of encrypted snippets failed: {ex.GetType().FullName}", ex);
                 }
                 return null;
             }
@@ -77,7 +77,7 @@ namespace TypeIt4Me.Services
             }
             catch (JsonException ex)
             {
-                Debug.WriteLine($"Plain-text snippet deserialization failed: {ex.GetType().FullName}");
+                logger?.LogError($"Plain-text snippet deserialization failed: {ex.GetType().FullName}", ex);
                 return null;
             }
         }
@@ -95,7 +95,7 @@ namespace TypeIt4Me.Services
                     string content = await File.ReadAllTextAsync(path);
 
                     // Detect plain vs V3-encrypted by prefix and deserialize off the UI thread.
-                    var loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
+                    var loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin, _logger));
 
                     if (loaded != null)
                     {
@@ -214,10 +214,10 @@ namespace TypeIt4Me.Services
                 // Plain JSON, or V3-encrypted: try the supplied import PIN first, then fall
                 // back to the active session PIN. Detection is prefix-based (see
                 // TryDeserializeSnippets) and runs off the UI thread.
-                List<Snippet>? loaded = await Task.Run(() => TryDeserializeSnippets(content, importPin));
+                List<Snippet>? loaded = await Task.Run(() => TryDeserializeSnippets(content, importPin, _logger));
                 if (loaded == null && _currentPin != null && _currentPin.Length > 0)
                 {
-                    loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin));
+                    loaded = await Task.Run(() => TryDeserializeSnippets(content, _currentPin, _logger));
                 }
 
                 if (loaded != null)
