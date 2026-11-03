@@ -533,5 +533,69 @@ namespace TypeIt4Me.Tests
             // Assert
             Assert.False(resizedValue);
         }
+
+        [Fact]
+        public void ReportStatus_SetsMessageAndErrorFlag_WhenErrorIsFalse()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var fakeHotkeyManager = new FakeHotkeyManager();
+            var fakeInputInjector = new FakeInputInjector();
+            var fakeFocusTracker = new FakeFocusTracker();
+            var fakeSettingsManager = new FakeSettingsManager();
+            var fakeAutoLockService = new FakeAutoLockService();
+            var fakeThemeService = new FakeThemeService();
+            var fakeLogger = new FakeLogger();
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                fakeHotkeyManager,
+                fakeInputInjector,
+                fakeFocusTracker,
+                fakeSettingsManager,
+                fakeAutoLockService,
+                fakeThemeService,
+                fakeLogger
+            );
+
+            // Act
+            viewModel.ReportStatus("Test Info Message");
+
+            // Assert
+            Assert.Equal("Test Info Message", viewModel.StatusMessage);
+            Assert.False(viewModel.StatusIsError);
+        }
+
+        [Fact]
+        public void ReportStatus_SetsMessageAndErrorFlag_WhenErrorIsTrue()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var fakeHotkeyManager = new FakeHotkeyManager();
+            var fakeInputInjector = new FakeInputInjector();
+            var fakeFocusTracker = new FakeFocusTracker();
+            var fakeSettingsManager = new FakeSettingsManager();
+            var fakeAutoLockService = new FakeAutoLockService();
+            var fakeThemeService = new FakeThemeService();
+            var fakeLogger = new FakeLogger();
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                fakeHotkeyManager,
+                fakeInputInjector,
+                fakeFocusTracker,
+                fakeSettingsManager,
+                fakeAutoLockService,
+                fakeThemeService,
+                fakeLogger
+            );
+
+            // Act
+            viewModel.ReportStatus("Test Error Message", isError: true);
+
+            // Assert
+            Assert.Equal("Test Error Message", viewModel.StatusMessage);
+            Assert.True(viewModel.StatusIsError);
+        }
     }
 }
