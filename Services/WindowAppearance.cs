@@ -9,6 +9,8 @@ namespace TypeIt4Me.Services;
 /// <summary>Optional DWM treatment. The opaque WPF surface remains the fallback.</summary>
 public static class WindowAppearance
 {
+    public static ILogger? Logger { get; set; }
+
     public static readonly DependencyProperty EnabledProperty = DependencyProperty.RegisterAttached(
         "Enabled", typeof(bool), typeof(WindowAppearance), new PropertyMetadata(false, OnEnabledChanged));
 
@@ -39,8 +41,14 @@ public static class WindowAppearance
             DwmSetWindowAttribute(handle, 20, ref dark, sizeof(int));
             DwmSetWindowAttribute(handle, 33, ref corners, sizeof(int));
         }
-        catch (DllNotFoundException) { }
-        catch (EntryPointNotFoundException) { }
+        catch (DllNotFoundException ex)
+        {
+            Logger?.LogInfo($"DWM not supported: {ex.Message}");
+        }
+        catch (EntryPointNotFoundException ex)
+        {
+            Logger?.LogInfo($"DWM attribute not supported: {ex.Message}");
+        }
     }
 
     [DllImport("dwmapi.dll")]
