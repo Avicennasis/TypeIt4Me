@@ -364,7 +364,7 @@ namespace TypeIt4Me.ViewModels
         {
             if (string.IsNullOrWhiteSpace(filter))
             {
-                return source.ToList();
+                return source;
             }
 
             filter = filter.Trim();
