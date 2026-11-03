@@ -36,6 +36,37 @@ namespace TypeIt4Me.Tests
         }
 
         [Fact]
+        public void SetTheme_HighContrast_AppliesHighContrastUri()
+        {
+            // Arrange
+            string? appliedUri = null;
+            bool uiInvoked = false;
+
+            Action<Action> mockInvokeOnUI = (action) =>
+            {
+                uiInvoked = true;
+                action();
+            };
+
+            Action<string> mockApplyTheme = (uri) =>
+            {
+                appliedUri = uri;
+            };
+
+            Func<bool> mockIsHighContrast = () => true;
+
+            var themeService = new ThemeService(mockInvokeOnUI, mockApplyTheme, mockIsHighContrast);
+
+            // Act
+            themeService.SetTheme(isDark: true); // High contrast takes precedence
+
+            // Assert
+            Assert.True(uiInvoked, "Expected SetTheme to invoke the UI dispatcher delegate.");
+            Assert.NotNull(appliedUri);
+            Assert.Equal("pack://application:,,,/TypeIt4Me;component/Views/HighContrastTheme.xaml", appliedUri);
+        }
+
+        [Fact]
         public void SetTheme_LightTheme_AppliesLightUri()
         {
             // Arrange
