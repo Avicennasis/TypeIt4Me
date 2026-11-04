@@ -347,7 +347,7 @@ namespace TypeIt4Me.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Ignore - this is expected when search is cancelled
+                _logger.LogInfo("Search cancelled.");
             }
             catch (Exception ex)
             {
