@@ -13,6 +13,7 @@ namespace TypeIt4Me.Services
         /// </summary>
         private const long MaxLogSizeBytes = 1024 * 1024;
 
+        private bool _rotationErrorLogged;
         private readonly string _logPath;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
         private readonly object _syncLock = new object();
@@ -107,15 +108,26 @@ namespace TypeIt4Me.Services
                 if (info.Exists && info.Length > MaxLogSizeBytes)
                 {
                     await Task.Run(() => File.Move(_logPath, _logPath + ".1", overwrite: true)).ConfigureAwait(false);
+                    _rotationErrorLogged = false;
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
                 // Log stays oversized this round; we would rather append than lose the entry.
+                if (!_rotationErrorLogged)
+                {
+                    _rotationErrorLogged = true;
+                    LogError("Log rotation failed", ex);
+                }
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
                 // Same reasoning: keep appending rather than dropping the line.
+                if (!_rotationErrorLogged)
+                {
+                    _rotationErrorLogged = true;
+                    LogError("Log rotation failed", ex);
+                }
             }
         }
 
