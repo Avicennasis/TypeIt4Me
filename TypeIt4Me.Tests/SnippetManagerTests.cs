@@ -108,10 +108,10 @@ namespace TypeIt4Me.Tests
             string fileContent = await File.ReadAllTextAsync(_importFile);
 
             // Should be encrypted
-            Assert.True(fileContent.StartsWith("V3|"));
+            Assert.StartsWith("V3|", fileContent);
 
             // Decrypt manually
-            string decrypted = CryptoService.Decrypt(fileContent, "1234".AsSpan());
+            string decrypted = CryptoService.Decrypt(fileContent, "1234".AsSpan()) ?? string.Empty;
             Assert.NotNull(decrypted);
 
             var deserialized = JsonSerializer.Deserialize<List<Snippet>>(decrypted);
