@@ -58,9 +58,10 @@ namespace TypeIt4Me.Services
                     _pendingWrite = LogInternalAsync(logEntry);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // In a desktop app, we avoid crashing the app because logging failed.
+                System.Diagnostics.Trace.WriteLine(ex);
             }
         }
 
@@ -81,9 +82,10 @@ namespace TypeIt4Me.Services
                      _semaphore.Release();
                  }
              }
-             catch
+             catch (Exception ex)
              {
                  // Ignore
+                 System.Diagnostics.Trace.WriteLine(ex);
              }
         }
 
@@ -109,13 +111,15 @@ namespace TypeIt4Me.Services
                     await Task.Run(() => File.Move(_logPath, _logPath + ".1", overwrite: true)).ConfigureAwait(false);
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
                 // Log stays oversized this round; we would rather append than lose the entry.
+                System.Diagnostics.Trace.WriteLine(ex);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
                 // Same reasoning: keep appending rather than dropping the line.
+                System.Diagnostics.Trace.WriteLine(ex);
             }
         }
 
@@ -125,9 +129,10 @@ namespace TypeIt4Me.Services
             {
                 _pendingWrite.Wait(TimeSpan.FromSeconds(2));
             }
-            catch
+            catch (Exception ex)
             {
                 // Ignore wait errors
+                System.Diagnostics.Trace.WriteLine(ex);
             }
         }
     }
