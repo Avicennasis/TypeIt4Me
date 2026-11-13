@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace TypeIt4Me.Services
 {
@@ -58,9 +59,10 @@ namespace TypeIt4Me.Services
                     _pendingWrite = LogInternalAsync(logEntry, skipRotation);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // In a desktop app, we avoid crashing the app because logging failed.
+                Trace.WriteLine($"FileLogger LogAsync exception: {ex}");
             }
         }
 
@@ -84,9 +86,10 @@ namespace TypeIt4Me.Services
                      _semaphore.Release();
                  }
              }
-             catch
+             catch (Exception ex)
              {
-                 // Ignore
+                 // In a desktop app, we avoid crashing the app because logging failed.
+                 Trace.WriteLine($"FileLogger LogInternalAsync exception: {ex}");
              }
         }
 
