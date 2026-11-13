@@ -58,10 +58,10 @@ namespace TypeIt4Me.Services
                 if (pin.IsEmpty) return null;
                 try
                 {
-                    string decrypted = CryptoService.Decrypt(content, pin);
+                    string decrypted = CryptoService.Decrypt(content, pin) ?? string.Empty;
                     if (!string.IsNullOrEmpty(decrypted))
                     {
-                        return JsonSerializer.Deserialize<List<Snippet>>(decrypted);
+                        return JsonSerializer.Deserialize<List<Snippet>>(decrypted) ?? new List<Snippet>();
                     }
                 }
                 catch (Exception ex)
