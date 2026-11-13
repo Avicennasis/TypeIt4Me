@@ -107,7 +107,7 @@ namespace TypeIt4Me.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Ignore - this is expected when search is cancelled
+                _logger.LogInfo("Search cancelled.");
             }
             catch (Exception ex)
             {
@@ -124,7 +124,7 @@ namespace TypeIt4Me.ViewModels
         {
             if (string.IsNullOrWhiteSpace(filter))
             {
-                return source.ToList();
+                return source;
             }
 
             filter = filter.Trim();

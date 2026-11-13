@@ -44,9 +44,10 @@ public partial class App : Application
         try
         {
             _logger = new FileLogger();
+            WindowAppearance.Logger = _logger;
             _snippetManager = new SnippetManager(_logger);
             _hotkeyManager = new HotkeyManager();
-            _focusTracker = new FocusTracker();
+            _focusTracker = new FocusTracker(logger: _logger);
             _settingsManager = new SettingsManager(_logger);
             _themeService = new ThemeService();
             await _settingsManager.LoadSettingsAsync();

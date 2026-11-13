@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace TypeIt4Me.Services
 {
@@ -43,7 +44,7 @@ namespace TypeIt4Me.Services
             LogAsync("ERROR", fullMessage);
         }
 
-        private void LogAsync(string level, string message)
+        private void LogAsync(string level, string message, bool skipRotation = false)
         {
             try
             {
@@ -55,16 +56,17 @@ namespace TypeIt4Me.Services
                 // We lock the update to the pending write task itself to avoid race conditions during assignment.
                 lock (_syncLock)
                 {
-                    _pendingWrite = LogInternalAsync(logEntry);
+                    _pendingWrite = LogInternalAsync(logEntry, skipRotation);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // In a desktop app, we avoid crashing the app because logging failed.
+                Trace.WriteLine($"FileLogger LogAsync exception: {ex}");
             }
         }
 
-        private async Task LogInternalAsync(string logEntry)
+        private async Task LogInternalAsync(string logEntry, bool skipRotation)
         {
              try
              {
@@ -73,7 +75,10 @@ namespace TypeIt4Me.Services
                  await _semaphore.WaitAsync().ConfigureAwait(false);
                  try
                  {
-                     await RotateIfOversizedAsync().ConfigureAwait(false);
+                     if (!skipRotation)
+                     {
+                         await RotateIfOversizedAsync().ConfigureAwait(false);
+                     }
                      await File.AppendAllTextAsync(_logPath, logEntry).ConfigureAwait(false);
                  }
                  finally
@@ -81,10 +86,17 @@ namespace TypeIt4Me.Services
                      _semaphore.Release();
                  }
              }
-             catch
+             catch (Exception ex)
              {
-                 // Ignore
+                 // In a desktop app, we avoid crashing the app because logging failed.
+                 Trace.WriteLine($"FileLogger LogInternalAsync exception: {ex}");
              }
+        }
+
+        private void LogRotationError(string message, Exception ex)
+        {
+            string fullMessage = $"{message}\nException: {ex.ToString()}";
+            LogAsync("ERROR", fullMessage, skipRotation: true);
         }
 
         /// <summary>
@@ -92,9 +104,8 @@ namespace TypeIt4Me.Services
         /// rather than truncated away. Must be called while the semaphore is held.
         /// </summary>
         /// <remarks>
-        /// Rotation failures are swallowed on purpose. The caller's catch block silently discards
-        /// anything that escapes, so letting an IO error propagate from here would cost us the log
-        /// line we were about to write. Failing to rotate is far cheaper than failing to log.
+        /// If rotation fails, we log the failure but do not attempt rotation recursively,
+        /// which prevents infinite loops while ensuring diagnostic details aren't swallowed.
         /// </remarks>
         private async Task RotateIfOversizedAsync()
         {
@@ -109,13 +120,13 @@ namespace TypeIt4Me.Services
                     await Task.Run(() => File.Move(_logPath, _logPath + ".1", overwrite: true)).ConfigureAwait(false);
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                // Log stays oversized this round; we would rather append than lose the entry.
+                LogRotationError("Failed to rotate log file.", ex);
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
-                // Same reasoning: keep appending rather than dropping the line.
+                LogRotationError("Failed to rotate log file due to unauthorized access.", ex);
             }
         }
 
@@ -125,9 +136,9 @@ namespace TypeIt4Me.Services
             {
                 _pendingWrite.Wait(TimeSpan.FromSeconds(2));
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore wait errors
+                LogError("Error waiting for pending write during dispose.", ex);
             }
         }
     }
