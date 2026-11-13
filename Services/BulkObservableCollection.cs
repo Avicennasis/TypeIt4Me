@@ -12,9 +12,18 @@ namespace TypeIt4Me.Services
             if (items == null)
                 throw new System.ArgumentNullException(nameof(items));
 
-            Items.Clear();
-            foreach (var item in items)
-                Items.Add(item);
+            if (Items is List<T> list)
+            {
+                list.Clear();
+                list.AddRange(items);
+            }
+            else
+            {
+                Items.Clear();
+                foreach (var item in items)
+                    Items.Add(item);
+            }
+
             OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
             OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
