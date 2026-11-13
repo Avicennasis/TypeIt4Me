@@ -11,13 +11,15 @@ namespace TypeIt4Me.Services
         private IntPtr _myWindowHandle;
         private readonly Func<IntPtr> _getForegroundWindow;
         private readonly Func<IntPtr, bool> _isOwnWindow;
+        private readonly ILogger? _logger;
 
         public IntPtr LastExternalWindowHandle { get; private set; }
 
-        internal FocusTracker(Func<IntPtr>? getForegroundWindow = null, Func<IntPtr, bool>? isOwnWindow = null)
+        internal FocusTracker(Func<IntPtr>? getForegroundWindow = null, Func<IntPtr, bool>? isOwnWindow = null, ILogger? logger = null)
         {
             _getForegroundWindow = getForegroundWindow ?? NativeMethods.GetForegroundWindow;
             _isOwnWindow = isOwnWindow ?? (getForegroundWindow != null ? _ => false : IsOwnProcessWindow);
+            _logger = logger;
         }
 
         private static bool IsOwnProcessWindow(IntPtr window)
@@ -47,9 +49,14 @@ namespace TypeIt4Me.Services
                     await Task.Delay(200, token);
                 }
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
                 // Expected during shutdown
+                _logger?.LogInfo($"Focus tracking loop canceled: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError("Unexpected error in focus tracking loop", ex);
             }
         }
 
