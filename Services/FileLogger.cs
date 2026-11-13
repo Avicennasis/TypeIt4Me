@@ -125,9 +125,9 @@ namespace TypeIt4Me.Services
             {
                 _pendingWrite.Wait(TimeSpan.FromSeconds(2));
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore wait errors
+                LogError("Error waiting for pending write during dispose.", ex);
             }
         }
     }
