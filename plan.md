@@ -1,17 +1,12 @@
-1. **Refactor `Services/FileLogger.cs`**
-   - The file `Services/FileLogger.cs` contains empty `catch` blocks (swallowed exceptions) at line 61 and others, which makes debugging difficult if file operations fail.
-   - The generic rationale suggests using `ILogger`, but since `FileLogger` *is* the implementation of `ILogger`, using it recursively isn't possible. Instead, we should use `System.Diagnostics.Debug.WriteLine` (or `Trace.WriteLine`) to capture and record the exceptions without crashing the app, ensuring that `catch` blocks are not empty. Memory says: "Do not use System.Diagnostics.Debug.WriteLine for error logging in production code. Because it has the [Conditional("DEBUG")] attribute, it is stripped from Release builds, which can cause catch blocks relying solely on it to become empty and silently swallow exceptions. Always inject ILogger instead."
-   - Wait, since this *is* the `ILogger`, we can use `System.Diagnostics.Trace.WriteLine` instead of `Debug.WriteLine`. Memory says "Always inject ILogger instead." but since we are IN the logger, we can't inject ILogger. We will use `System.Diagnostics.Trace.WriteLine`.
-   - Update `catch` blocks in `LogAsync`, `LogInternalAsync`, `RotateIfOversizedAsync`, and `Dispose` to capture the exceptions and log them using `Trace.WriteLine()`. This fixes the swallowed exceptions. Use `cat << 'EOF' > patch_filelogger.diff` and `patch` to modify the file. Include reading the file afterward to verify it.
-
-2. **Verify the Compilation**
-   - Use `dotnet build -p:EnableWindowsTargeting=true TypeIt4Me.csproj` to ensure the code compiles without errors.
-
-3. **Execute Tests**
-   - Run `dotnet test` to fulfill the test requirement, verifying that the changes haven't broken any tests (expecting native WPF test failures on Linux, which is acceptable).
-
-4. **Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.**
-   - Run the pre-commit tool to verify code health and catch issues.
-
-5. **Submit PR**
-   - Submit the PR with standard title formatting (`🧹 [Fix swallowed exceptions in FileLogger]`), detailing the What, Why, Verification, and Result.
+1. **Fix Vulnerability in `Services/CryptoService.cs`:**
+   - Modify the `SecureStringToCharArray` method in `Services/CryptoService.cs` to prevent the string from sitting around in memory without being cleared.
+   - Use `GC.AllocateUninitializedArray<char>(secureString.Length, pinned: true)` to ensure that the unmanaged memory backing the array cannot be relocated by the Garbage Collector, making sure when we clear the array, the memory is definitely zeroed out.
+   - We should use `pinned: true` so the garbage collector does not move the `char[]` around in memory and leave copies.
+   - Verify that this is supported in .NET 8 (the framework used by this project).
+2. **Review Codebase for Calls to `SecureStringToCharArray`:**
+   - I have checked `App.xaml.cs` and seen that `pinChars` returned from this method is appropriately cleared using `Array.Clear` inside a `finally` block everywhere it is called. No modifications are necessary in `App.xaml.cs`.
+3. **Execute Pre-commit instructions:**
+   - Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
+   - Execute `dotnet test` (via `run_in_bash_session`) to ensure no regressions. The test might fail on Linux due to WPF native issues, but I will do it.
+4. **Submit PR:**
+   - Push and submit with proper title and description.
