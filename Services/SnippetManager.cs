@@ -168,7 +168,7 @@ namespace TypeIt4Me.Services
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Failed to delete temporary file {fileToDelete}: {ex.GetType().FullName}");
+                            _logger.LogError($"Failed to delete temporary file {fileToDelete}", ex);
                         }
                     });
                 }
