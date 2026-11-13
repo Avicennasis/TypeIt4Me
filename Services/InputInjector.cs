@@ -118,46 +118,62 @@ namespace TypeIt4Me.Services
             int lastIndex = 0;
             int currentIndex = 0;
 
-            while (currentIndex < text.Length)
+            while (TryFindNextCommand(text, currentIndex, out int openBraceIndex, out int closeBraceIndex))
             {
-                int openBraceIndex = text.IndexOf('{', currentIndex);
-                if (openBraceIndex == -1)
-                    break;
-
-                int closeBraceIndex = text.IndexOf('}', openBraceIndex + 1);
-                if (closeBraceIndex == -1)
-                    break;
-
-                if (closeBraceIndex == openBraceIndex + 1)
-                {
-                    // Empty braces "{}" - Regex [^}]+ requires at least 1 char. Skip this open brace.
-                    currentIndex = openBraceIndex + 1;
-                    continue;
-                }
-
-                // Type any text before this command
-                if (openBraceIndex > lastIndex)
-                {
-                    var beforeText = text.AsMemory(lastIndex, openBraceIndex - lastIndex);
-                    await TypePlainTextAsync(beforeText);
-                }
-
-                // Process the command
-                var commandMemory = text.AsMemory(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1);
-                string command = commandMemory.ToString().Trim();
-                var fullBraceMemory = text.AsMemory(openBraceIndex, closeBraceIndex - openBraceIndex + 1);
-                await ProcessCommand(command, fullBraceMemory);
+                await TypeTextSegmentAsync(text, lastIndex, openBraceIndex);
+                await ProcessExtractedCommandAsync(text, openBraceIndex, closeBraceIndex);
 
                 lastIndex = closeBraceIndex + 1;
                 currentIndex = lastIndex;
             }
 
-            // Type any remaining text after the last command
-            if (lastIndex < text.Length)
+            await TypeTextSegmentAsync(text, lastIndex, text.Length);
+        }
+
+        private bool TryFindNextCommand(string text, int startIndex, out int openBraceIndex, out int closeBraceIndex)
+        {
+            openBraceIndex = -1;
+            closeBraceIndex = -1;
+
+            int currentIndex = startIndex;
+            while (currentIndex < text.Length)
             {
-                var remainingText = text.AsMemory(lastIndex);
-                await TypePlainTextAsync(remainingText);
+                openBraceIndex = text.IndexOf('{', currentIndex);
+                if (openBraceIndex == -1)
+                    return false;
+
+                closeBraceIndex = text.IndexOf('}', openBraceIndex + 1);
+                if (closeBraceIndex == -1)
+                    return false;
+
+                if (closeBraceIndex == openBraceIndex + 1)
+                {
+                    // Empty braces "{}" - Skip this open brace.
+                    currentIndex = openBraceIndex + 1;
+                    continue;
+                }
+
+                return true;
             }
+
+            return false;
+        }
+
+        private async Task TypeTextSegmentAsync(string text, int startIndex, int endIndex)
+        {
+            if (endIndex > startIndex)
+            {
+                await TypePlainTextAsync(text.AsMemory(startIndex, endIndex - startIndex));
+            }
+        }
+
+        private async Task ProcessExtractedCommandAsync(string text, int openBraceIndex, int closeBraceIndex)
+        {
+            var commandMemory = text.AsMemory(openBraceIndex + 1, closeBraceIndex - openBraceIndex - 1);
+            string command = commandMemory.ToString().Trim();
+            var fullBraceMemory = text.AsMemory(openBraceIndex, closeBraceIndex - openBraceIndex + 1);
+
+            await ProcessCommand(command, fullBraceMemory);
         }
 
         /// <summary>
