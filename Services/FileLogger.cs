@@ -44,7 +44,7 @@ namespace TypeIt4Me.Services
             LogAsync("ERROR", fullMessage);
         }
 
-        private void LogAsync(string level, string message)
+        private void LogAsync(string level, string message, bool skipRotation = false)
         {
             try
             {
@@ -56,7 +56,7 @@ namespace TypeIt4Me.Services
                 // We lock the update to the pending write task itself to avoid race conditions during assignment.
                 lock (_syncLock)
                 {
-                    _pendingWrite = LogInternalAsync(logEntry);
+                    _pendingWrite = LogInternalAsync(logEntry, skipRotation);
                 }
             }
             catch (Exception ex)
@@ -66,7 +66,7 @@ namespace TypeIt4Me.Services
             }
         }
 
-        private async Task LogInternalAsync(string logEntry)
+        private async Task LogInternalAsync(string logEntry, bool skipRotation)
         {
              try
              {
@@ -75,7 +75,10 @@ namespace TypeIt4Me.Services
                  await _semaphore.WaitAsync().ConfigureAwait(false);
                  try
                  {
-                     await RotateIfOversizedAsync().ConfigureAwait(false);
+                     if (!skipRotation)
+                     {
+                         await RotateIfOversizedAsync().ConfigureAwait(false);
+                     }
                      await File.AppendAllTextAsync(_logPath, logEntry).ConfigureAwait(false);
                  }
                  finally
@@ -90,14 +93,19 @@ namespace TypeIt4Me.Services
              }
         }
 
+        private void LogRotationError(string message, Exception ex)
+        {
+            string fullMessage = $"{message}\nException: {ex.ToString()}";
+            LogAsync("ERROR", fullMessage, skipRotation: true);
+        }
+
         /// <summary>
         /// Rolls an oversized log over to <c>&lt;name&gt;.1</c> so diagnostic history is preserved
         /// rather than truncated away. Must be called while the semaphore is held.
         /// </summary>
         /// <remarks>
-        /// Rotation failures are swallowed on purpose. The caller's catch block silently discards
-        /// anything that escapes, so letting an IO error propagate from here would cost us the log
-        /// line we were about to write. Failing to rotate is far cheaper than failing to log.
+        /// If rotation fails, we log the failure but do not attempt rotation recursively,
+        /// which prevents infinite loops while ensuring diagnostic details aren't swallowed.
         /// </remarks>
         private async Task RotateIfOversizedAsync()
         {
@@ -114,13 +122,11 @@ namespace TypeIt4Me.Services
             }
             catch (IOException ex)
             {
-                // Log stays oversized this round; we would rather append than lose the entry.
-                Trace.WriteLine($"FileLogger RotateIfOversizedAsync IOException: {ex}");
+                LogRotationError("Failed to rotate log file.", ex);
             }
             catch (UnauthorizedAccessException ex)
             {
-                // Same reasoning: keep appending rather than dropping the line.
-                Trace.WriteLine($"FileLogger RotateIfOversizedAsync UnauthorizedAccessException: {ex}");
+                LogRotationError("Failed to rotate log file due to unauthorized access.", ex);
             }
         }
 
@@ -132,8 +138,7 @@ namespace TypeIt4Me.Services
             }
             catch (Exception ex)
             {
-                // Ignore wait errors
-                Trace.WriteLine($"FileLogger Dispose exception: {ex}");
+                LogError("Error waiting for pending write during dispose.", ex);
             }
         }
     }

@@ -5,7 +5,7 @@ namespace TypeIt4Me.Tests.Fakes
 {
     public class FakeAutoLockService : IAutoLockService
     {
-        public event Action? OnLockTriggered;
+        public event Action? OnLockTriggered { add { } remove { } }
         public bool UpdateLastActivityCalled { get; private set; }
 
         public void UpdateLastActivity()

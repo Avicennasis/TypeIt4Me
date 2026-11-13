@@ -495,6 +495,45 @@ namespace TypeIt4Me.Tests
             Assert.Equal("Gamma", viewModel.FilteredSnippets[0].Name);
         }
         [Fact]
+        public void RefreshSecurityState_RaisesExpectedEvents()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger()
+            );
+
+            var raisedProperties = new System.Collections.Generic.List<string>();
+            viewModel.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName != null)
+                    raisedProperties.Add(e.PropertyName);
+            };
+
+            bool lockCommandCanExecuteChanged = false;
+            viewModel.LockCommand.CanExecuteChanged += (s, e) => lockCommandCanExecuteChanged = true;
+
+            bool removePinCommandCanExecuteChanged = false;
+            viewModel.RemovePinCommand.CanExecuteChanged += (s, e) => removePinCommandCanExecuteChanged = true;
+
+            // Act
+            viewModel.RefreshSecurityState();
+
+            // Assert
+            Assert.Contains(nameof(MainViewModel.HasPin), raisedProperties);
+            Assert.Contains(nameof(MainViewModel.SecuritySummary), raisedProperties);
+            Assert.True(lockCommandCanExecuteChanged, "LockCommand CanExecuteChanged was not raised");
+            Assert.True(removePinCommandCanExecuteChanged, "RemovePinCommand CanExecuteChanged was not raised");
+        }
+
+        [Fact]
         public void IsMiniMode_WhenChanged_FiresRequestWindowResizeEvent()
         {
             // Arrange
@@ -532,6 +571,70 @@ namespace TypeIt4Me.Tests
 
             // Assert
             Assert.False(resizedValue);
+        }
+
+        [Fact]
+        public void ReportStatus_SetsMessageAndErrorFlag_WhenErrorIsFalse()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var fakeHotkeyManager = new FakeHotkeyManager();
+            var fakeInputInjector = new FakeInputInjector();
+            var fakeFocusTracker = new FakeFocusTracker();
+            var fakeSettingsManager = new FakeSettingsManager();
+            var fakeAutoLockService = new FakeAutoLockService();
+            var fakeThemeService = new FakeThemeService();
+            var fakeLogger = new FakeLogger();
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                fakeHotkeyManager,
+                fakeInputInjector,
+                fakeFocusTracker,
+                fakeSettingsManager,
+                fakeAutoLockService,
+                fakeThemeService,
+                fakeLogger
+            );
+
+            // Act
+            viewModel.ReportStatus("Test Info Message");
+
+            // Assert
+            Assert.Equal("Test Info Message", viewModel.StatusMessage);
+            Assert.False(viewModel.StatusIsError);
+        }
+
+        [Fact]
+        public void ReportStatus_SetsMessageAndErrorFlag_WhenErrorIsTrue()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var fakeHotkeyManager = new FakeHotkeyManager();
+            var fakeInputInjector = new FakeInputInjector();
+            var fakeFocusTracker = new FakeFocusTracker();
+            var fakeSettingsManager = new FakeSettingsManager();
+            var fakeAutoLockService = new FakeAutoLockService();
+            var fakeThemeService = new FakeThemeService();
+            var fakeLogger = new FakeLogger();
+
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                fakeHotkeyManager,
+                fakeInputInjector,
+                fakeFocusTracker,
+                fakeSettingsManager,
+                fakeAutoLockService,
+                fakeThemeService,
+                fakeLogger
+            );
+
+            // Act
+            viewModel.ReportStatus("Test Error Message", isError: true);
+
+            // Assert
+            Assert.Equal("Test Error Message", viewModel.StatusMessage);
+            Assert.True(viewModel.StatusIsError);
         }
     }
 }
