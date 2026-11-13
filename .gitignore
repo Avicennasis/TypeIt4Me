@@ -9,3 +9,7 @@ BenchmarkDotNet.Artifacts/
 publish/
 TestResults/
 .stargazer-*
+
+# merge/patch leftovers
+*.orig
+*.rej
