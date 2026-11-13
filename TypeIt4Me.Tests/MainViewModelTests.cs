@@ -495,6 +495,45 @@ namespace TypeIt4Me.Tests
             Assert.Equal("Gamma", viewModel.FilteredSnippets[0].Name);
         }
         [Fact]
+        public void RefreshSecurityState_RaisesExpectedEvents()
+        {
+            // Arrange
+            var fakeSnippetManager = new FakeSnippetManager();
+            var viewModel = new MainViewModel(
+                fakeSnippetManager,
+                new FakeHotkeyManager(),
+                new FakeInputInjector(),
+                new FakeFocusTracker(),
+                new FakeSettingsManager(),
+                new FakeAutoLockService(),
+                new FakeThemeService(),
+                new FakeLogger()
+            );
+
+            var raisedProperties = new System.Collections.Generic.List<string>();
+            viewModel.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName != null)
+                    raisedProperties.Add(e.PropertyName);
+            };
+
+            bool lockCommandCanExecuteChanged = false;
+            viewModel.LockCommand.CanExecuteChanged += (s, e) => lockCommandCanExecuteChanged = true;
+
+            bool removePinCommandCanExecuteChanged = false;
+            viewModel.RemovePinCommand.CanExecuteChanged += (s, e) => removePinCommandCanExecuteChanged = true;
+
+            // Act
+            viewModel.RefreshSecurityState();
+
+            // Assert
+            Assert.Contains(nameof(MainViewModel.HasPin), raisedProperties);
+            Assert.Contains(nameof(MainViewModel.SecuritySummary), raisedProperties);
+            Assert.True(lockCommandCanExecuteChanged, "LockCommand CanExecuteChanged was not raised");
+            Assert.True(removePinCommandCanExecuteChanged, "RemovePinCommand CanExecuteChanged was not raised");
+        }
+
+        [Fact]
         public void IsMiniMode_WhenChanged_FiresRequestWindowResizeEvent()
         {
             // Arrange
